@@ -15,8 +15,6 @@ const app = express();
 // body 파싱 미들웨어
 app.use(bodyParser.json());
 
-app.use();
-
 // 라우트 처리
 app.use("/api/users", usersRoutes);
 app.use("/api/reservations");

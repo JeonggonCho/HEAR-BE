@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 import UserModel from "../models/userModel";
-import RefreshTokenModel from "../models/refreshTokenModel";
 import HttpError from "../models/errorModel";
 
 import jwt from "../utils/jwtUtil";
@@ -88,7 +87,16 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         const accessToken = jwt.sign(createdUser);
 
         // 결과 반환
-        res.status(201).json({userId: createdUser._id, email: createdUser.email, accessToken, refreshToken});
+        res.status(201).json({
+            data: {
+                userId: createdUser._id,
+                email: createdUser.email,
+                username: createdUser.username,
+                studentId: createdUser.studentId,
+                accessToken,
+                refreshToken,
+            },
+        });
     } catch (err) {
         return next(new HttpError("회원가입 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -113,7 +121,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     // 유저 없을 경우, 오류 발생
     if (!existingUser) {
-        return next(new HttpError("유효하지 않은 자격 증명으로 로그인 할 수 없습니다.", 403));
+        return next(new HttpError("유효하지 않은 데이터이므로 로그인 할 수 없습니다.", 403));
     }
 
     // 요청 비밀번호와 암호화된 비밀번호 비교
@@ -126,26 +134,28 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     // 비밀번호가 안 맞을 경우, 오류 발생
     if (!isValidPassword) {
-        return next(new HttpError("유효하지 않은 자격 증명으로 로그인 할 수 없습니다.", 401));
+        return next(new HttpError("유효하지 않은 데이터이므로 로그인 할 수 없습니다.", 401));
     }
 
     // JWT 토큰 생성
-    const accessToken = jwt.sign(existingUser);
-    const refreshToken = jwt.refresh(existingUser._id);
-
-    const createdRefreshToken = new RefreshTokenModel({
-        userId: existingUser._id,
-        token: refreshToken,
-    });
-
     try {
-        await createdRefreshToken.save();
-    } catch (err) {
-        return next(new HttpError("로그인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
+        const accessToken = jwt.sign(existingUser);
+        const [refreshToken] = await jwt.refresh(existingUser._id);
 
-    // 결과 반환
-    res.status(200).json({userId: existingUser._id, email: existingUser.email, accessToken, refreshToken});
+        // 결과 반환
+        res.status(200).json({
+            data: {
+                userId: existingUser._id,
+                email: existingUser.email,
+                username: existingUser.username,
+                studentId: existingUser.studentId,
+                accessToken,
+                refreshToken,
+            }
+        });
+    } catch (err) {
+        return next(new HttpError("로그인 중 토큰 생성 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
 };
 
 export {getUser, signup, login}

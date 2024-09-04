@@ -12,13 +12,9 @@ const JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY as string;
 interface ITokenSignProps {
     _id: mongoose.Types.ObjectId;
     email: string;
+    username: string;
     role: "admin" | "student" | "manager";
-    passQuiz: boolean;
-    studio: string;
-    year: "1" | "2" | "3" | "4" | "5";
     studentId: string;
-    countOfWarning: number;
-    countOfLaser: number;
 }
 
 const jwtUtil = {
@@ -27,13 +23,9 @@ const jwtUtil = {
         const payload = {
             userId: user._id,
             email: user.email,
+            username: user.username,
             role: user.role,
-            passQuiz: user.passQuiz,
-            studio: user.studio,
-            year: user.year,
             studentId: user.studentId,
-            countOfWarning: user.countOfWarning,
-            countOfLaser: user.countOfLaser,
         };
 
         return jwt.sign(payload, JWT_PRIVATE_KEY, {expiresIn: '1h'});

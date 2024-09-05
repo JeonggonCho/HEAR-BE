@@ -7,16 +7,40 @@ import UserModel from "../models/userModel";
 import HttpError from "../models/errorModel";
 
 import jwt from "../utils/jwtUtil";
+import {CustomRequest} from "../middlewares/checkAuth";
 
 
 // 유저 정보 가져오기
-const getUser = async (req: Request, res: Response, next: NextFunction) => {
-    let user;
-    try {
-        user = await UserModel.find({})
-    } catch (err) {
-        return next(err);
+const getUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다.", 401));
     }
+
+    const {userId} = req.userData;
+
+    // id로 유저 찾기
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("유저 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 유저가 없을 경우, 오류 발생시키기
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({
+        data: {
+            year: existingUser.year,
+            studio: existingUser.studio,
+            passQuiz: existingUser.passQuiz,
+            countOfLaser: existingUser.countOfLaser,
+            countOfWarning: existingUser.countOfWarning,
+            tel: existingUser.tel,
+        }
+    });
 };
 
 // 회원가입
@@ -158,4 +182,41 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export {getUser, signup, login}
+// 유저 정보 수정
+const updateUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    const {year, studio, tel} = req.body;
+    const {userId} = req.userData;
+
+    // 유저 아이디로 유저 찾기
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("유저 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 해당 아이디의 유저가 없을 경우, 오류 발생시키기
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    // 유저 정보 업데이트
+    existingUser.year = year;
+    existingUser.studio = studio;
+    existingUser.tel = tel;
+
+    try {
+        await existingUser.save();
+    } catch (err) {
+        return next(new HttpError("유저 정보 저장 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(200).json({message: "유저 정보가 성공적으로 수정되었습니다."});
+};
+
+export {getUser, signup, login, updateUser}

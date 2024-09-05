@@ -32,4 +32,13 @@ const loginValidator = [
         .matches(PW_REGEX).withMessage("8~20자의 영문 대/소문자, 숫자, 특수문자 중 2가지 조합으로 입력해주세요"),
 ];
 
-export {signupValidator, loginValidator}
+const updateAccountValidator = [
+    check("year", "학년을 입력해주세요")
+        .not().isEmpty().isIn(["1", "2", "3", "4", "5"]).withMessage("유효한 학년을 입력해주세요"),
+    check("studio", "스튜디오 교수님을 입력해주세요").not().isEmpty(),
+    check("tel", "전화번호를 입력해주세요")
+        .not().isEmpty()
+        .matches(TEL_REGEX).withMessage("전화번호는 10 또는 11자리 숫자여야 합니다"),
+];
+
+export {signupValidator, loginValidator, updateAccountValidator}

@@ -1,7 +1,7 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, {Document, Schema} from "mongoose";
 import uniqueValidator from "mongoose-unique-validator";
 
-interface IUser {
+export interface IUser extends Document {
     username: string;
     email: string;
     password: string;
@@ -14,8 +14,8 @@ interface IUser {
     countOfWarning: number;
     countOfLaser: number;
     refreshTokenId: mongoose.Types.ObjectId;
-    inquiries: [mongoose.Types.ObjectId];
-    feedback: [mongoose.Types.ObjectId];
+    inquiries: mongoose.Types.ObjectId[];
+    feedback: mongoose.Types.ObjectId[];
 }
 
 const userSchema = new mongoose.Schema<IUser>({

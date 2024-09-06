@@ -1,4 +1,9 @@
 import mongoose, {Schema} from "mongoose";
+import {IUser} from "./userModel";
+
+export interface IPopulatedUser extends IUser {
+    _id: mongoose.Types.ObjectId;
+}
 
 interface IInquiry {
     title: string;
@@ -6,7 +11,7 @@ interface IInquiry {
     content: string;
     creator: mongoose.Types.ObjectId;
     createdAt: Date;
-    comments: [mongoose.Types.ObjectId]
+    comments: mongoose.Types.ObjectId[];
 }
 
 const inquirySchema = new mongoose.Schema<IInquiry>({

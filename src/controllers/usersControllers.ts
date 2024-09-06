@@ -1,7 +1,7 @@
 import {NextFunction, Request, Response} from "express";
 import {validationResult} from "express-validator";
 import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
 import UserModel from "../models/userModel";
 import HttpError from "../models/errorModel";
@@ -97,8 +97,10 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         // 유저 저장
         await createdUser.save({session: sess});
 
+        const userId = createdUser._id as Types.ObjectId;
+
         // 리프레시 토큰 생성 및 저장
-        const [refreshToken, refreshTokenId] = await jwt.refresh(createdUser._id);
+        const [refreshToken, refreshTokenId] = await jwt.refresh(userId);
 
         // 생성된 리프레시 토큰의 _id를 유저의 refreshTokenId에 적용
         createdUser.refreshTokenId = refreshTokenId as mongoose.Types.ObjectId;
@@ -108,7 +110,13 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         await sess.endSession();
 
         // JWT 액세스 토큰 생성
-        const accessToken = jwt.sign(createdUser);
+        const accessToken = jwt.sign({
+            _id: createdUser._id as Types.ObjectId,
+            email: createdUser.email,
+            username: createdUser.username,
+            role: createdUser.role,
+            studentId: createdUser.studentId,
+        });
 
         // 결과 반환
         res.status(201).json({
@@ -163,8 +171,14 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     // JWT 토큰 생성
     try {
-        const accessToken = jwt.sign(existingUser);
-        const [refreshToken] = await jwt.refresh(existingUser._id);
+        const accessToken = jwt.sign({
+            _id: existingUser._id as Types.ObjectId,
+            email: existingUser.email,
+            username: existingUser.username,
+            role: existingUser.role,
+            studentId: existingUser.studentId,
+        });
+        const [refreshToken] = await jwt.refresh(existingUser._id as mongoose.Types.ObjectId);
 
         // 결과 반환
         res.status(200).json({

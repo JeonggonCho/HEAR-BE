@@ -20,13 +20,13 @@ interface ITokenSignProps {
 
 const jwtUtil = {
     // 액세스 토큰 발급
-    sign: (user: ITokenSignProps) => {
+    sign: (props: ITokenSignProps) => {
         const payload = {
-            userId: user._id,
-            email: user.email,
-            username: user.username,
-            role: user.role,
-            studentId: user.studentId,
+            userId: props._id,
+            email: props.email,
+            username: props.username,
+            role: props.role,
+            studentId: props.studentId,
         };
 
         return jwt.sign(payload, JWT_PRIVATE_KEY, {expiresIn: '1h'});

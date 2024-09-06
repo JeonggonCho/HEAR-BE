@@ -4,6 +4,9 @@ import * as mongoose from "mongoose";
 import dotenv from "dotenv";
 
 import usersRoutes from "./routes/usersRoutes";
+import inquiriesRoutes from "./routes/inquiriesRoutes";
+import feedbackRoutes from "./routes/feedbackRoutes";
+import noticesRoutes from "./routes/noticesRoutes";
 import HttpError from "./models/errorModel";
 
 dotenv.config();
@@ -27,8 +30,10 @@ app.use((req, res, next) => {
 
 // 라우트 처리
 app.use("/api/users", usersRoutes);
+app.use("/api/inquiries", inquiriesRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/notices", noticesRoutes);
 // app.use("/api/reservations");
-// app.use("/api/qna");
 // app.use("/api/quiz");
 
 app.use((req, res, next) => {

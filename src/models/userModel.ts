@@ -14,6 +14,8 @@ interface IUser {
     countOfWarning: number;
     countOfLaser: number;
     refreshTokenId: mongoose.Types.ObjectId;
+    inquiries: [mongoose.Types.ObjectId];
+    feedback: [mongoose.Types.ObjectId];
 }
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -69,7 +71,17 @@ const userSchema = new mongoose.Schema<IUser>({
         type: Schema.Types.ObjectId,
         required: true,
         ref: "RefreshToken",
-    }
+    },
+    inquiries: [{
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "Inquiry"
+    }],
+    feedback: [{
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "Feedback"
+    }],
 });
 
 userSchema.plugin(uniqueValidator);

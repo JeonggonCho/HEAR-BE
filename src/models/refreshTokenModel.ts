@@ -15,6 +15,7 @@ const refreshTokenSchema = new mongoose.Schema<IRefreshToken>({
     createdAt: {
         type: Date,
         default: Date.now,
+        required: true,
         expires: "14d",
     },
     userId: {

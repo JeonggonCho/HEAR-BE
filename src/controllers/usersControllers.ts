@@ -192,31 +192,29 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     const {year, studio, tel} = req.body;
     const {userId} = req.userData;
 
-    // 유저 아이디로 유저 찾기
-    let existingUser;
+    // 유저 정보 업데이트
+    let updatedUser;
     try {
-        existingUser = await UserModel.findById(userId);
+        updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            {year, studio, tel},
+            {new: true}
+        );
     } catch (err) {
-        return next(new HttpError("유저 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        return next(new HttpError("유저 정보 업데이트 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
 
-    // 해당 아이디의 유저가 없을 경우, 오류 발생시키기
-    if (!existingUser) {
+    // 해당 아이디의 유저가 없을 경우
+    if (!updatedUser) {
         return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
     }
 
-    // 유저 정보 업데이트
-    existingUser.year = year;
-    existingUser.studio = studio;
-    existingUser.tel = tel;
-
-    try {
-        await existingUser.save();
-    } catch (err) {
-        return next(new HttpError("유저 정보 저장 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
-    }
-
-    res.status(200).json({message: "유저 정보가 성공적으로 수정되었습니다."});
+    // 성공 응답
+    res.status(200).json({message: "유저 정보가 성공적으로 수정되었습니다.", user: updatedUser});
 };
 
-export {getUser, signup, login, updateUser}
+const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+
+};
+
+export {getUser, signup, login, updateUser, deleteUser}

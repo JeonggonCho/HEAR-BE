@@ -1,7 +1,7 @@
 import mongoose, {Schema} from "mongoose";
 import {IUser} from "./userModel";
 
-export interface IPopulatedUser extends IUser {
+export interface IPopulatedInquiryUser extends IUser {
     _id: mongoose.Types.ObjectId;
 }
 

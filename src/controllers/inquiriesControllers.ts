@@ -143,13 +143,13 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     try {
         const sess = await mongoose.startSession();
         sess.startTransaction();
-        await inquiry.deleteOne({session: sess});
 
         inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
             (id) => id.toString() !== inquiry._id.toString()
         );
 
         await inquiry.creator.save({session: sess});
+        await inquiry.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {
         return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));

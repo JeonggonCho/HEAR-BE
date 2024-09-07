@@ -47,7 +47,7 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("피드백 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(201).json({data: {inquiryId: createdFeedback._id}});
+    res.status(201).json({data: {feedbackId: createdFeedback._id}});
 };
 
 // 피드백 목록 조회
@@ -83,12 +83,69 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
 
 // 피드백 디테일 조회
 const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const {userId} = req.userData;
+    const {feedbackId} = req.params;
 
+    let feedback;
+    try {
+        feedback = await FeedbackModel.findById(feedbackId).populate<{ creator: IPopulatedFeedbackUser }>("creator");
+    } catch (err) {
+        return next(new HttpError("피드백 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!feedback) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
+    }
+
+    if (feedback.creator._id.toString() !== userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
+    }
+
+    res.status(200).json({
+        data: {
+            title: feedback.title,
+            category: feedback.category,
+            content: feedback.content,
+            creator: feedback.creator.username,
+            createdAt: feedback.createdAt,
+        },
+    });
 };
 
 // 피드백 삭제
 const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const {userId} = req.userData;
+    const {feedbackId} = req.params;
 
+    let feedback;
+    try {
+        feedback = await FeedbackModel.findById(feedbackId).populate<{ creator: IPopulatedFeedbackUser }>("creator");
+    } catch (err) {
+        return next(new HttpError("피드백 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!feedback) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
+    }
+
+    if (feedback.creator._id.toString() !== userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
+    }
+
+    try {
+        const sess = await mongoose.startSession();
+        sess.startTransaction();
+
+        feedback.creator.feedback = feedback.creator.feedback.filter(
+            (id) => id.toString() !== feedback._id.toString()
+        );
+
+        await feedback.creator.save({session: sess});
+        await feedback.deleteOne({session: sess});
+        await sess.commitTransaction();
+    } catch (err) {
+        return next(new HttpError("피드백 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
 };
 
 export {newFeedback, getFeedbackList, getFeedback, deleteFeedback};

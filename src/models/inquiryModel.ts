@@ -28,6 +28,7 @@ const inquirySchema = new mongoose.Schema<IInquiry>({
         type: String,
         required: true,
         minlength: 10,
+        maxlength: 400,
     },
     creator: {
         type: Schema.Types.ObjectId,

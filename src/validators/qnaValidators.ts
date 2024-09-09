@@ -20,9 +20,9 @@ const newFeedbackValidator = [
     checkContent,
 ];
 
-const newNoticeValidator = [
+const noticeValidator = [
     checkTitle,
     checkContent
 ];
 
-export {newInquiryValidator, newFeedbackValidator, newNoticeValidator};
+export {newInquiryValidator, newFeedbackValidator, noticeValidator};

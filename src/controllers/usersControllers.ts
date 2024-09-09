@@ -13,10 +13,14 @@ import {CustomRequest} from "../middlewares/checkAuth";
 // 유저 정보 가져오기
 const getUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
-        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다.", 401));
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
     const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 조회 할 수 없습니다.", 403));
+    }
 
     // id로 유저 찾기
     let existingUser;
@@ -33,12 +37,17 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
 
     res.status(200).json({
         data: {
+            userId: existingUser._id,
+            username: existingUser.username,
+            email: existingUser.email,
             year: existingUser.year,
+            studentId: existingUser.studentId,
             studio: existingUser.studio,
             passQuiz: existingUser.passQuiz,
             countOfLaser: existingUser.countOfLaser,
             countOfWarning: existingUser.countOfWarning,
             tel: existingUser.tel,
+            role: existingUser.role,
         }
     });
 };
@@ -62,7 +71,7 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
 
     // 동일한 email 유저 존재 시, 오류 발생
     if (existingUser) {
-        return next(new HttpError("이미 가입한 유저입니다.", 422));
+        return next(new HttpError("이미 가입이 되어있는 유저입니다.", 422));
     }
 
     // 비밀번호 암호화
@@ -125,6 +134,13 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
                 email: createdUser.email,
                 username: createdUser.username,
                 studentId: createdUser.studentId,
+                year: createdUser.year,
+                studio: createdUser.studio,
+                passQuiz: createdUser.passQuiz,
+                countOfLaser: createdUser.countOfLaser,
+                countOfWarning: createdUser.countOfWarning,
+                tel: createdUser.tel,
+                role: createdUser.role,
                 accessToken,
                 refreshToken,
             },
@@ -187,6 +203,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 email: existingUser.email,
                 username: existingUser.username,
                 studentId: existingUser.studentId,
+                year: existingUser.year,
+                studio: existingUser.studio,
+                passQuiz: existingUser.passQuiz,
+                countOfLaser: existingUser.countOfLaser,
+                countOfWarning: existingUser.countOfWarning,
+                tel: existingUser.tel,
+                role: existingUser.role,
                 accessToken,
                 refreshToken,
             }
@@ -203,15 +226,19 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
-    const {year, studio, tel} = req.body;
+    const {username, year, studentId, studio, tel} = req.body;
     const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 수정 할 수 없습니다.", 403));
+    }
 
     // 유저 정보 업데이트
     let updatedUser;
     try {
         updatedUser = await UserModel.findByIdAndUpdate(
             userId,
-            {year, studio, tel},
+            {username, year, studentId, studio, tel},
             {new: true}
         );
     } catch (err) {

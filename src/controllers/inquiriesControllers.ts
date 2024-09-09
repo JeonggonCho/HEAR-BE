@@ -15,8 +15,20 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {title, category, content} = req.body;
-    const {userId} = req.userData;
+    const {userId, role} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 등록 할 수 없습니다.", 403));
+    }
+
+    if (role !== "student") {
+        return next(new HttpError("학생만 문의 등록이 가능합니다.", 403));
+    }
 
     // id로 유저 조회
     let user;
@@ -56,7 +68,15 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
 
 // 문의 목록 조회
 const getInquiries = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의 목록을 조회 할 수 없습니다.", 403));
+    }
 
     let inquiries;
     try {
@@ -82,13 +102,25 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
         };
     });
 
-    return res.status(200).json({data: data});
+    return res.status(200).json({data});
 };
 
 // 문의 디테일 조회
 const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
     const {inquiryId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
+    }
+
+    if (!inquiryId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
+    }
 
     let inquiry;
     try {
@@ -118,8 +150,16 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
 
 // 문의 삭제
 const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
     const {inquiryId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 403));
+    }
 
     // 문의 조회
     let inquiry;

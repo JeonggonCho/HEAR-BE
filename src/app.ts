@@ -7,6 +7,7 @@ import usersRoutes from "./routes/usersRoutes";
 import inquiriesRoutes from "./routes/inquiriesRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
 import noticesRoutes from "./routes/noticesRoutes";
+
 import HttpError from "./models/errorModel";
 
 dotenv.config();
@@ -37,14 +38,13 @@ app.use("/api/notices", noticesRoutes);
 // app.use("/api/quiz");
 
 app.use((req, res, next) => {
-    const error = new HttpError("라우트를 찾지 못했습니다", 404);
-    throw error;
+    return next(new HttpError("라우트를 찾지 못했습니다", 404));
 });
 
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {
         console.log(error);
-        return next(error);
+        return;
     }
     const statusCode = res.statusCode !== 200 ? res.statusCode : 500;
     console.log(error);

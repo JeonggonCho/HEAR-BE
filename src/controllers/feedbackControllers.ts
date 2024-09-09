@@ -15,8 +15,16 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {title, category, content} = req.body;
     const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 생성 할 수 없습니다.", 403));
+    }
 
     let user;
     try {
@@ -52,7 +60,15 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
 
 // 피드백 목록 조회
 const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백 목록을 조회 할 수 없습니다.", 403));
+    }
 
     let feedback;
     try {
@@ -78,13 +94,21 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
         };
     });
 
-    return res.status(200).json({data: data});
+    return res.status(200).json({data});
 };
 
 // 피드백 디테일 조회
 const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
     const {feedbackId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
+    }
 
     let feedback;
     try {
@@ -114,8 +138,16 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
 
 // 피드백 삭제
 const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {userId} = req.userData;
     const {feedbackId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 삭제 할 수 없습니다.", 403));
+    }
 
     let feedback;
     try {

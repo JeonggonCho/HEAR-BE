@@ -239,7 +239,7 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
         updatedUser = await UserModel.findByIdAndUpdate(
             userId,
             {username, year, studentId, studio, tel},
-            {new: true}
+            {new: true},
         );
     } catch (err) {
         return next(new HttpError("유저 정보 업데이트 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
@@ -251,7 +251,7 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     }
 
     // 성공 응답
-    res.status(200).json({message: "유저 정보가 성공적으로 수정되었습니다.", user: updatedUser});
+    res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
 };
 
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {

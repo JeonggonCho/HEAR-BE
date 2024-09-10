@@ -19,6 +19,10 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
     const {title, category, content} = req.body;
     const {userId, role} = req.userData;
 
@@ -195,7 +199,7 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(204).json({message: "문의 삭제 성공"});
+    res.status(204).json({message: "문의가 삭제되었습니다."});
 };
 
 export {newInquiry, getInquiry, getInquiries, deleteInquiry};

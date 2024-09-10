@@ -171,12 +171,12 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
 
     // 해당 문의가 없을 경우, 오류 발생시키기
     if (!inquiry) {
-        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 403));
     }
 
     // 문의 작성자와 요청자가 다를 경우, 오류 발생시키기
     if (inquiry.creator._id.toString() !== userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 401));
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 401));
     }
 
     // 문의 삭제 시, 유저의 문의 목록에서도 삭제하기
@@ -194,6 +194,8 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     } catch (err) {
         return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
+
+    res.status(204).json({message: "문의 삭제 성공"});
 };
 
 export {newInquiry, getInquiry, getInquiries, deleteInquiry};

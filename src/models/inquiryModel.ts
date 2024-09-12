@@ -5,13 +5,13 @@ export interface IPopulatedInquiryUser extends IUser {
     _id: mongoose.Types.ObjectId;
 }
 
-interface IInquiry {
+export interface IInquiry {
     title: string;
     category: "machine" | "reservation" | "room" | "etc";
     content: string;
     creator: mongoose.Types.ObjectId;
     createdAt: Date;
-    comments: mongoose.Types.ObjectId[];
+    comment: mongoose.Types.ObjectId;
 }
 
 const inquirySchema = new mongoose.Schema<IInquiry>({
@@ -40,11 +40,11 @@ const inquirySchema = new mongoose.Schema<IInquiry>({
         default: Date.now,
         required: true,
     },
-    comments: [{
+    comment: {
         type: Schema.Types.ObjectId,
-        required: true,
+        default: null,
         ref: "Comment",
-    }],
+    },
 });
 
 const InquiryModel = mongoose.model<IInquiry>("Inquiry", inquirySchema);

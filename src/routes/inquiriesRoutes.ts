@@ -1,14 +1,16 @@
 import express from "express";
-import {deleteInquiry, getInquiries, getInquiry, newInquiry} from "../controllers/inquiriesControllers";
+import {deleteInquiry, getInquiries, getInquiry, newInquiry, updateInquiry} from "../controllers/inquiriesControllers";
 import checkAuth from "../middlewares/checkAuth";
-import {newInquiryValidator} from "../validators/qnaValidators";
+import {inquiryValidator} from "../validators/qnaValidators";
 
 const router = express.Router();
 
-router.post("/new", checkAuth, newInquiryValidator, newInquiry);
+router.post("/new", checkAuth, inquiryValidator, newInquiry);
 
 router.get("/", checkAuth, getInquiries);
 router.get("/:inquiryId", checkAuth, getInquiry);
+
+router.patch("/:inquiryId", checkAuth, inquiryValidator, updateInquiry);
 
 router.delete("/:inquiryId", checkAuth, deleteInquiry);
 

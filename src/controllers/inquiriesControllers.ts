@@ -44,7 +44,7 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
 
     // 유저 없을 경우, 오류 발생
     if (!user) {
-        return next(new HttpError("유효하지 않은 데이터이므로 문의를 생성 할 수 없습니다.", 403));
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 등록 할 수 없습니다.", 403));
     }
 
     // 새 문의 생성
@@ -76,17 +76,29 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
+    const {userId, role} = req.userData;
 
     if (!userId) {
         return next(new HttpError("유효하지 않은 데이터이므로 문의 목록을 조회 할 수 없습니다.", 403));
     }
 
-    let inquiries;
+    if (!role) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의 목록을 조회 할 수 없습니다.", 403));
+    }
+
+    let inquiries: any[];
     try {
-        inquiries = await InquiryModel.find({creator: userId}).sort({createdAt: -1}).populate<{
-            creator: IPopulatedInquiryUser
-        }>("creator");
+        if (role === "student") {
+            inquiries = await InquiryModel.find({creator: userId}).sort({createdAt: -1}).populate<{
+                creator: IPopulatedInquiryUser
+            }>("creator");
+        } else if (role === "manager" || role === "admin") {
+            inquiries = await InquiryModel.find().sort({createdAt: -1}).populate<{
+                creator: IPopulatedInquiryUser
+            }>("creator");
+        } else {
+            inquiries = [];
+        }
     } catch (err) {
         return next(new HttpError("문의 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -100,7 +112,7 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
             _id: i._id,
             title: i.title,
             category: i.category,
-            answer: i.comments.length > 0,
+            answer: !!i.comment,
             creator: i.creator.username,
             createdAt: i.createdAt,
         };
@@ -115,10 +127,14 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
+    const {userId, role} = req.userData;
     const {inquiryId} = req.params;
 
     if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
+    }
+
+    if (!role) {
         return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
     }
 
@@ -137,7 +153,7 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
     }
 
-    if (inquiry.creator._id.toString() !== userId) {
+    if (!(["manager", "admin", "student"]).includes(role)) {
         return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 401));
     }
 
@@ -147,9 +163,51 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
             category: inquiry.category,
             content: inquiry.content,
             creator: inquiry.creator.username,
+            creatorId: inquiry.creator._id.toString(),
             createdAt: inquiry.createdAt,
         },
     });
+};
+
+// 문의 수정
+const updateInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+    const {inquiryId} = req.params;
+    const {title, category, content} = req.body;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 수정 할 수 없습니다.", 403));
+    }
+
+    let updatedInquiry;
+    try {
+        updatedInquiry = await InquiryModel.findByIdAndUpdate(
+            inquiryId,
+            {title, category, content},
+            {new: true},
+        );
+    } catch (err) {
+        return next(new HttpError("문의 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!updatedInquiry) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 수정 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({message: "공지가 수정되었습니다.", data: {inquiry: updatedInquiry}});
 };
 
 // 문의 삭제
@@ -202,4 +260,4 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     res.status(204).json({message: "문의가 삭제되었습니다."});
 };
 
-export {newInquiry, getInquiry, getInquiries, deleteInquiry};
+export {newInquiry, getInquiry, getInquiries, updateInquiry, deleteInquiry};

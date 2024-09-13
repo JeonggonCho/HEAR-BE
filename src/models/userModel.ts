@@ -2,26 +2,27 @@ import mongoose, {Document, Schema} from "mongoose";
 import uniqueValidator from "mongoose-unique-validator";
 
 export interface IUser extends Document {
-    username: string;
-    email: string;
-    password: string;
-    role: "admin" | "student" | "manager";
-    passQuiz: boolean;
-    studio: string;
-    year: "1" | "2" | "3" | "4" | "5";
-    tel: string;
-    studentId: string;
-    countOfWarning: number;
-    countOfLaser: number;
-    refreshTokenId: mongoose.Types.ObjectId;
-    inquiries: mongoose.Types.ObjectId[];
+    username: string; // 모든 유저
+    email: string; // 모든 유저
+    password: string; // 모든 유저
+    role: "admin" | "student" | "manager"; // 모든 유저
+    passQuiz?: boolean; // student
+    studio?: string; // student
+    year?: "1" | "2" | "3" | "4" | "5"; // student
+    tel: string; // 모든 유저
+    studentId: string; // 모든 유저
+    countOfWarning?: number; // student
+    countOfLaser?: number; // student
+    refreshTokenId: mongoose.Types.ObjectId; // 모든 유저
+    inquiries?: mongoose.Types.ObjectId[]; // student
     feedback: mongoose.Types.ObjectId[];
+    lab?: string; // manager
 }
 
 const userSchema = new mongoose.Schema<IUser>({
     username: {
         type: String,
-        required: true
+        required: true,
     },
     email: {
         type: String,
@@ -35,37 +36,47 @@ const userSchema = new mongoose.Schema<IUser>({
     role: {
         type: String,
         default: "student",
-        required: true
+        required: true,
     },
     passQuiz: {
         type: Boolean,
-        required: true
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
     },
     studio: {
         type: String,
-        required: true
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
     },
     year: {
         type: String,
-        required: true
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
     },
     tel: {
         type: String,
-        required: true
+        required: true,
     },
     studentId: {
         type: String,
-        required: true
+        required: true,
     },
     countOfWarning: {
         type: Number,
         default: 0,
-        required: true
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
     },
     countOfLaser: {
         type: Number,
         default: 4,
-        required: true
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
     },
     refreshTokenId: {
         type: Schema.Types.ObjectId,
@@ -74,17 +85,46 @@ const userSchema = new mongoose.Schema<IUser>({
     },
     inquiries: [{
         type: Schema.Types.ObjectId,
-        required: true,
-        ref: "Inquiry"
+        required: function (this: IUser) {
+            return this.role === "student";
+        },
+        ref: "Inquiry",
     }],
     feedback: [{
         type: Schema.Types.ObjectId,
         required: true,
-        ref: "Feedback"
+        ref: "Feedback",
     }],
+    lab: {
+        type: String,
+        required: function (this: IUser) {
+            return this.role === "manager";
+        },
+    },
 });
 
 userSchema.plugin(uniqueValidator);
+
+userSchema.pre('save', function (next) {
+    const user = this as IUser;
+
+    if (user.role === "admin") {
+        delete user.passQuiz;
+        delete user.studio;
+        delete user.year;
+        delete user.countOfWarning;
+        delete user.countOfLaser;
+        delete user.inquiries;
+        delete user.lab;
+    } else if (user.role === "manager") {
+        delete user.countOfWarning;
+        delete user.countOfLaser;
+        delete user.inquiries;
+    } else if (user.role === "student") {
+        delete user.lab;
+    }
+    next();
+});
 
 const UserModel = mongoose.model<IUser>("User", userSchema);
 

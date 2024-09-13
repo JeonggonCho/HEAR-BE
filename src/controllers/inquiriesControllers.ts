@@ -60,7 +60,12 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         const sess = await mongoose.startSession();
         sess.startTransaction();
         await createdInquiry.save({session: sess});
+
+        if (!user.inquiries) {
+            user.inquiries = [];
+        }
         user.inquiries.push(createdInquiry._id);
+        
         await user.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
@@ -246,11 +251,13 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         const sess = await mongoose.startSession();
         sess.startTransaction();
 
-        inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
-            (id) => id.toString() !== inquiry._id.toString()
-        );
+        if (inquiry.creator.role === "student" && inquiry.creator.inquiries) {
+            inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
+                (id) => id.toString() !== inquiry._id.toString()
+            );
+            await inquiry.creator.save({session: sess});
+        }
 
-        await inquiry.creator.save({session: sess});
         await inquiry.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {

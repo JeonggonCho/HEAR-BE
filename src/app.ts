@@ -9,7 +9,6 @@ import feedbackRoutes from "./routes/feedbackRoutes";
 import noticesRoutes from "./routes/noticesRoutes";
 import machinesRoutes from "./routes/machinesRoutes";
 import reservationsRoutes from "./routes/reservationsRoutes";
-import managementRoutes from "./routes/managementRoutes";
 
 import HttpError from "./models/errorModel";
 
@@ -37,9 +36,8 @@ app.use("/api/users", usersRoutes);
 app.use("/api/inquiries", inquiriesRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/notices", noticesRoutes);
-app.use("api/machines", machinesRoutes)
+app.use("/api/machines", machinesRoutes)
 app.use("/api/reservations", reservationsRoutes);
-app.use("/api/management", managementRoutes);
 // app.use("/api/quiz");
 
 app.use((req, res, next) => {

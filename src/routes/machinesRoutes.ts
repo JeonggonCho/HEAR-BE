@@ -1,6 +1,8 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
 import {
+    deleteLaser,
+    deletePrinter,
     getCncs,
     getHeats,
     getLasers,
@@ -38,10 +40,13 @@ router.post("/lasers", checkAuth, newLaserValidator, newLaser);
 router.post("/printers", checkAuth, newPrinterValidator, newPrinter);
 
 router.patch("/lasers/:laserId", checkAuth, updateLaserValidator, updateLaser);
-router.patch("/printer/:printerId", checkAuth, updatePrinterValidator, updatePrinter);
+router.patch("/printers/:printerId", checkAuth, updatePrinterValidator, updatePrinter);
 router.patch("/heats/:heatId", checkAuth, updateHeatValidator, updateHeat);
 router.patch("/saws/:sawId", checkAuth, statusValidator, updateSaw);
 router.patch("/vacuums/:vacuumId", checkAuth, statusValidator, updateVacuum);
 router.patch("/cncs/:cncId", checkAuth, statusValidator, updateCnc);
+
+router.delete("/lasers/:laserId", checkAuth, deleteLaser);
+router.delete("/printers/:printerId", checkAuth, deletePrinter);
 
 export default router;

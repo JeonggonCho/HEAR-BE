@@ -26,6 +26,30 @@ const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction)
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
+
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
+    const {name} = req.body;
+    const {userId, role} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 3d 프린터를 생성 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    const createdPrinter = new PrinterModel({name});
+
+    try {
+        createdPrinter.save();
+        res.status(201).json({data: {printer: createdPrinter}});
+    } catch (err) {
+        return next(new HttpError("3d 프린터 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
 };
 
 // 레이저 커팅기 정보 조회
@@ -39,7 +63,11 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -66,7 +94,11 @@ const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -94,7 +126,11 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -108,7 +144,6 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     res.status(200).json({data: {heats}});
-
 };
 
 // 톱 정보 조회
@@ -122,7 +157,11 @@ const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -149,7 +188,11 @@ const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -176,7 +219,11 @@ const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -194,12 +241,76 @@ const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) =>
 
 // 레이저 커팅기 정보 수정
 const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+    const {name, status, times} = req.body;
+    const {laserId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let laser;
+    try {
+        laser = await LaserModel.findByIdAndUpdate(laserId, {name, status, times}, {new: true});
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 정보 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!laser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기 정보를 수정 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({message: "레이저 커팅기 수정완료"});
 };
 
 // 3d 프린터 정보 수정
 const updatePrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+    const {name, status} = req.body;
+    const {printerId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let printer;
+    try {
+        printer = await PrinterModel.findByIdAndUpdate(printerId, {name, status}, {new: true});
+    } catch (err) {
+        return next(new HttpError("3d 프린터 정보 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!printer) {
+        return next(new HttpError("유효하지 않은 데이터이므로 3d 프린터 정보를 수정 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({message: "3d 프린터 수정완료"});
 };
 
 // 열선 정보 수정
@@ -213,9 +324,13 @@ const updateHeat = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
     const {status, count} = req.body;
     const {heatId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -246,9 +361,13 @@ const updateSaw = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
     const {status} = req.body;
     const {sawId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -279,9 +398,13 @@ const updateVacuum = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
     const {status} = req.body;
     const {vacuumId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -312,9 +435,13 @@ const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role} = req.userData;
+    const {role, userId} = req.userData;
     const {cncId} = req.params;
     const {status} = req.body;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
+    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -334,6 +461,68 @@ const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) 
     res.status(200).json({message: "cnc 수정완료"});
 };
 
+// 레이저 커팅기 기기 삭제
+const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+    const {laserId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 삭제 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    try {
+        await LaserModel.findByIdAndDelete(laserId);
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
+};
+
+// 3d 프린터 기기 삭제
+const deletePrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+    const {printerId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기를 삭제 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    try {
+        await PrinterModel.findByIdAndDelete(printerId);
+    } catch (err) {
+        return next(new HttpError("3d 프린터 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(204).json({message: "3d 프린터가 삭제되었습니다."});
+};
+
 export {
     newLaser,
     newPrinter,
@@ -349,4 +538,6 @@ export {
     updateSaw,
     updateVacuum,
     updateCnc,
+    deleteLaser,
+    deletePrinter,
 };

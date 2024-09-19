@@ -5,10 +5,13 @@ interface ITimeRange {
     endTime: string;
 }
 
+interface ILaserTimes {
+    times: ITimeRange[];
+}
+
 interface ILaser extends Document {
     name: string;
     status: boolean;
-    times: ITimeRange[];
 }
 
 interface IPrinter extends Document {
@@ -64,6 +67,9 @@ const laserSchema = new mongoose.Schema<ILaser>({
         required: true,
         default: false,
     },
+});
+
+const laserTimesSchema = new mongoose.Schema<ILaserTimes>({
     times: {
         type: [timeRangeSchema],
         default: []
@@ -119,10 +125,11 @@ const cncSchema = new mongoose.Schema<ICnc>({
 });
 
 const LaserModel = mongoose.model<ILaser>("Laser", laserSchema);
+const LaserTimesModel = mongoose.model<ILaserTimes>("LaserTimes", laserTimesSchema);
 const PrinterModel = mongoose.model<IPrinter>("Printer", printerSchema);
 const HeatModel = mongoose.model<IHeat>("Heat", heatSchema);
 const SawModel = mongoose.model<ISaw>("Saw", sawSchema);
 const VacuumModel = mongoose.model<IVacuum>("Vacuum", vacuumSchema);
 const CncModel = mongoose.model<ICnc>("Cnc", cncSchema);
 
-export {LaserModel, PrinterModel, HeatModel, SawModel, VacuumModel, CncModel};
+export {LaserModel, LaserTimesModel, PrinterModel, HeatModel, SawModel, VacuumModel, CncModel};

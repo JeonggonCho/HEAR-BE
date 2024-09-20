@@ -2,7 +2,15 @@ import {CustomRequest} from "../middlewares/checkAuth";
 import {NextFunction, Response} from "express";
 import {validationResult} from "express-validator";
 import HttpError from "../models/errorModel";
-import {CncModel, HeatModel, LaserModel, PrinterModel, SawModel, VacuumModel} from "../models/machineModel";
+import {
+    CncModel,
+    HeatModel,
+    LaserModel,
+    LaserTimeModel,
+    PrinterModel,
+    SawModel,
+    VacuumModel
+} from "../models/machineModel";
 
 // 레이저 커팅기 생성
 const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -13,6 +21,65 @@ const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {name} = req.body;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기를 생성 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    const createdLaser = new LaserModel({name});
+
+    try {
+        createdLaser.save();
+        res.status(201).json({data: {laser: createdLaser}});
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+};
+
+// 레이저 커팅기 시간 추가
+const newLaserTime = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {id, startTime, endTime} = req.body;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기 시간을 추가 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    const createdLaserTime = new LaserTimeModel({id, startTime, endTime});
+    try {
+        createdLaserTime.save();
+        res.status(201).json({
+            data: {
+                laserTime: {
+                    id: createdLaserTime.id,
+                    startTime: createdLaserTime.startTime,
+                    endTime: createdLaserTime.endTime
+                }
+            }
+        });
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 시간 추가 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 };
 
@@ -81,6 +148,45 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
     }
 
     res.status(200).json({data: {lasers}});
+};
+
+// 레이저 커팅기 시간 목록 조회
+const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 시간을 조회 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let laserTimes;
+    try {
+        laserTimes = await LaserTimeModel.find();
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 시간 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(200).json({
+        data: {
+            laserTimes: laserTimes.map(({id, startTime, endTime}) => ({
+                id,
+                startTime,
+                endTime,
+            }))
+        }
+    });
 };
 
 // 3d 프린터 정보 조회
@@ -274,6 +380,11 @@ const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction
     }
 
     res.status(200).json({message: "레이저 커팅기 수정완료"});
+};
+
+// 레이저 커팅기 시간 목록 수정
+const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
+
 };
 
 // 3d 프린터 정보 수정
@@ -492,6 +603,43 @@ const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction
     res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
 };
 
+// 레이저 커팅기 시간 삭제
+const deleteLaserTime = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role, userId} = req.userData;
+    const {laserTimeId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 시간을 삭제 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let laserTime;
+    try {
+        laserTime = await LaserTimeModel.findOne({id: laserTimeId});
+    } catch (err) {
+        return next(new HttpError("레이저 커팅기 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!laserTime) {
+        return next(new HttpError("유효하지 않은 데이터이므로 시간을 삭제 할 수 없습니다.", 403));
+    } else {
+        await laserTime.deleteOne();
+        res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
+    }
+};
+
 // 3d 프린터 기기 삭제
 const deletePrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -525,19 +673,23 @@ const deletePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
 
 export {
     newLaser,
+    newLaserTime,
     newPrinter,
     getLasers,
+    getLaserTimes,
     getPrinters,
     getHeats,
     getSaws,
     getVacuums,
     getCncs,
     updateLaser,
+    updateLaserTimes,
     updatePrinter,
     updateHeat,
     updateSaw,
     updateVacuum,
     updateCnc,
     deleteLaser,
+    deleteLaserTime,
     deletePrinter,
 };

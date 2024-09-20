@@ -1,12 +1,9 @@
 import mongoose, {Document} from "mongoose";
 
-interface ITimeRange {
+interface ILaserTime {
+    id: string;
     startTime: string;
     endTime: string;
-}
-
-interface ILaserTimes {
-    times: ITimeRange[];
 }
 
 interface ILaser extends Document {
@@ -36,27 +33,6 @@ interface ICnc extends Document {
     status: boolean;
 }
 
-const timeRangeSchema = new mongoose.Schema<ITimeRange>({
-    startTime: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/,
-    },
-    endTime: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/,
-        validate: {
-            validator: function (value: string): boolean {
-                const [startHour, startMinute] = (this as any).startTime.split(':').map(Number);
-                const [endHour, endMinute] = value.split(':').map(Number);
-                return (startHour < endHour) || (startHour === endHour && startMinute < endMinute);
-            },
-            message: "종료 시간이 시작 시간보다 이후여야 합니다."
-        }
-    }
-});
-
 const laserSchema = new mongoose.Schema<ILaser>({
     name: {
         type: String,
@@ -69,10 +45,21 @@ const laserSchema = new mongoose.Schema<ILaser>({
     },
 });
 
-const laserTimesSchema = new mongoose.Schema<ILaserTimes>({
-    times: {
-        type: [timeRangeSchema],
-        default: []
+const laserTimeSchema = new mongoose.Schema<ILaserTime>({
+    id: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    startTime: {
+        type: String,
+        required: true,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/,
+    },
+    endTime: {
+        type: String,
+        required: true,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/,
     },
 });
 
@@ -125,11 +112,11 @@ const cncSchema = new mongoose.Schema<ICnc>({
 });
 
 const LaserModel = mongoose.model<ILaser>("Laser", laserSchema);
-const LaserTimesModel = mongoose.model<ILaserTimes>("LaserTimes", laserTimesSchema);
+const LaserTimeModel = mongoose.model<ILaserTime>("LaserTime", laserTimeSchema);
 const PrinterModel = mongoose.model<IPrinter>("Printer", printerSchema);
 const HeatModel = mongoose.model<IHeat>("Heat", heatSchema);
 const SawModel = mongoose.model<ISaw>("Saw", sawSchema);
 const VacuumModel = mongoose.model<IVacuum>("Vacuum", vacuumSchema);
 const CncModel = mongoose.model<ICnc>("Cnc", cncSchema);
 
-export {LaserModel, LaserTimesModel, PrinterModel, HeatModel, SawModel, VacuumModel, CncModel};
+export {LaserModel, LaserTimeModel, PrinterModel, HeatModel, SawModel, VacuumModel, CncModel};

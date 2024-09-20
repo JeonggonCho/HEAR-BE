@@ -28,6 +28,7 @@ import {
     newPrinterValidator,
     statusValidator,
     updateHeatValidator,
+    updateLaserTimeValidator,
     updateLaserValidator,
     updatePrinterValidator
 } from "../validators/machinesValidators";
@@ -46,14 +47,13 @@ router.post("/lasers", checkAuth, newLaserValidator, newLaser);
 router.post("/printers", checkAuth, newPrinterValidator, newPrinter);
 router.post("/lasers/times", checkAuth, newLaserTimeValidator, newLaserTime);
 
+router.patch("/lasers/times", checkAuth, updateLaserTimeValidator, updateLaserTimes);
 router.patch("/lasers/:laserId", checkAuth, updateLaserValidator, updateLaser);
 router.patch("/printers/:printerId", checkAuth, updatePrinterValidator, updatePrinter);
 router.patch("/heats/:heatId", checkAuth, updateHeatValidator, updateHeat);
 router.patch("/saws/:sawId", checkAuth, statusValidator, updateSaw);
 router.patch("/vacuums/:vacuumId", checkAuth, statusValidator, updateVacuum);
 router.patch("/cncs/:cncId", checkAuth, statusValidator, updateCnc);
-
-router.put("/lasers/times", checkAuth, updateLaserTimes);
 
 router.delete("/lasers/:laserId", checkAuth, deleteLaser);
 router.delete("/printers/:printerId", checkAuth, deletePrinter);

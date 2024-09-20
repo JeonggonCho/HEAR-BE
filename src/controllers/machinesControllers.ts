@@ -384,7 +384,50 @@ const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction
 
 // 레이저 커팅기 시간 목록 수정
 const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const laserTimeList = req.body;
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 시간을 수정 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    const session = await LaserTimeModel.startSession(); // 트랜잭션 세션 시작
+    session.startTransaction();
+
+    try {
+        // 1. 기존 데이터 모두 삭제
+        await LaserTimeModel.deleteMany({}, {session});
+
+        // 2. 새로운 데이터 삽입
+        for (const laserTime of laserTimeList) {
+            const newLaserTime = new LaserTimeModel(laserTime);
+            await newLaserTime.save({session});
+        }
+
+        // 3. 트랜잭션 커밋 (모든 작업이 성공하면 확정)
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
+    } catch (error) {
+        // 4. 오류 발생 시 롤백
+        await session.abortTransaction();
+        session.endSession();
+        return next(new HttpError("레이저 커팅기 시간 목록 수정 중 오류가 발생했습니다.", 500));
+    }
 };
 
 // 3d 프린터 정보 수정
@@ -668,7 +711,7 @@ const deletePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("3d 프린터 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(204).json({message: "3d 프린터가 삭제되었습니다."});
+    res.status(204).json({data: {message: "3d 프린터가 삭제되었습니다."}});
 };
 
 export {

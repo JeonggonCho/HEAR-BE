@@ -1,4 +1,4 @@
-import {check} from "express-validator";
+import {body, check} from "express-validator";
 
 const checkStatus = check("status", "상태 정보가 필요합니다").not().isEmpty();
 
@@ -26,6 +26,30 @@ const newLaserTimeValidator = [
         }),
 ];
 
+const updateLaserTimeValidator = [
+    // 배열 내 각 객체에 대해 id, startTime, endTime을 검증
+    body('*.id')
+        .notEmpty().withMessage('ID는 필수 항목입니다')
+        .isString().withMessage('ID는 문자열이어야 합니다'),
+    body('*.startTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('시작 시간은 HH:MM 형식이어야 합니다'),
+    body('*.endTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('종료 시간은 HH:MM 형식이어야 합니다')
+        .custom((endTime, {req, path}) => {
+            const index = path.split('[')[1].split(']')[0];
+            const startTime = req.body[index].startTime;
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+
+            if (startHour > endHour || (startHour === endHour && startMinute >= endMinute)) {
+                throw new Error('종료 시간이 시작 시간보다 이후여야 합니다');
+            }
+            return true;
+        }),
+];
+
 const updateLaserValidator = [
     checkStatus,
 ];
@@ -48,8 +72,9 @@ const statusValidator = [
 
 export {
     newLaserValidator,
-    newLaserTimeValidator,
     updateLaserValidator,
+    newLaserTimeValidator,
+    updateLaserTimeValidator,
     newPrinterValidator,
     updatePrinterValidator,
     updateHeatValidator,

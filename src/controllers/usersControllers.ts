@@ -351,7 +351,38 @@ const addWarning = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {role} = req.userData;
+    const {userId} = req.params;
+    const {countOfWarning, message} = req.body;
 
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let user;
+    try {
+        user = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("경고 부과 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!user) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
+    }
+
+    if (user.countOfWarning !== countOfWarning) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
+    }
+
+    if (typeof user.countOfWarning === "number") {
+        user.countOfWarning++;
+        await user.save();
+        res.status(200).json({data: {countOfWarning: user.countOfWarning}});
+    }
 };
 
 // 경고 차감하기
@@ -363,6 +394,39 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
 
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role} = req.userData;
+    const {userId} = req.params;
+    const {countOfWarning} = req.body;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 차감을 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let user;
+    try {
+        user = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("경고 차감 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!user) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 차감을 할 수 없습니다.", 403));
+    }
+
+    if (user.countOfWarning !== countOfWarning) {
+        return next(new HttpError("유효하지 않은 데이터이므로 경고 차감을 할 수 없습니다.", 403));
+    }
+
+    if (typeof user.countOfWarning === "number") {
+        user.countOfWarning--;
+        await user.save();
+        res.status(200).json({data: {countOfWarning: user.countOfWarning}});
     }
 };
 
@@ -407,7 +471,7 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
     user.passQuiz = true;
     await user.save();
 
-    res.status(200).json({data: user.passQuiz});
+    res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
 
 // 교육 미이수 처리하기
@@ -451,7 +515,7 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
     user.passQuiz = false;
     await user.save();
 
-    res.status(200).json({data: user.passQuiz});
+    res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
 
 // 유저 탈퇴하기

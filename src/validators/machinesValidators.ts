@@ -1,6 +1,6 @@
 import {body, check} from "express-validator";
 
-const checkStatus = check("status", "상태 정보가 필요합니다").not().isEmpty();
+const checkStatus = check("status", "상태 정보가 필요합니다").optional().isBoolean();
 
 const newLaserValidator = [
     check("name", "기기명을 입력해주세요").not().isEmpty(),
@@ -51,7 +51,8 @@ const updateLaserTimeValidator = [
 ];
 
 const updateLaserValidator = [
-    checkStatus,
+    checkStatus.optional(),
+    check("name", "기기명을 입력해주세요").optional().not().isEmpty(),
 ];
 
 const newPrinterValidator = [
@@ -59,11 +60,13 @@ const newPrinterValidator = [
 ];
 
 const updatePrinterValidator = [
-    checkStatus,
+    checkStatus.optional(),
+    check("name", "기기명을 입력해주세요").optional().not().isEmpty(),
 ];
 
 const updateHeatValidator = [
-    check('count'),
+    checkStatus.optional(),
+    check('count', "기기 대수를 입력해주세요").optional().isInt({min: 0, max: 15}),
 ];
 
 const statusValidator = [

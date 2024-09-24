@@ -41,4 +41,28 @@ const updateAccountValidator = [
         .matches(TEL_REGEX).withMessage("전화번호는 10 또는 11자리 숫자여야 합니다"),
 ];
 
-export {signupValidator, loginValidator, updateAccountValidator}
+const addWarningValidator = [
+    check("message", "경고 사유를 입력해주세요")
+        .not().isEmpty(),
+    check("countOfWarning", "경고 부과 시, 경고 횟수는 0 이상 1 이하이어야 합니다")
+        .isInt({min: 0, max: 1}),
+];
+
+const minusWarningValidator = [
+    check("countOfWarning", "경고 차감 시, 경고 횟수는 1 이상 2 이하이어야 합니다")
+        .isInt({min: 1, max: 2}),
+];
+
+const checkPassQuizValidator = [
+    check("passQuiz", "교육 이수 여부 처리 시, 교육 이수 여부는 참 또는 거짓이여야 합니다")
+        .isBoolean(),
+];
+
+export {
+    signupValidator,
+    loginValidator,
+    updateAccountValidator,
+    addWarningValidator,
+    minusWarningValidator,
+    checkPassQuizValidator
+}

@@ -52,6 +52,88 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
     });
 };
 
+// 특정 유저 정보 조회하기
+const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role} = req.userData;
+    const {userId} = req.params;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 조회 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("유저 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({
+        data: {
+            username: existingUser.username,
+            email: existingUser.email,
+            year: existingUser.year,
+            studentId: existingUser.studentId,
+            studio: existingUser.studio,
+            passQuiz: existingUser.passQuiz,
+            countOfWarning: existingUser.countOfWarning,
+            tel: existingUser.tel,
+        }
+    });
+};
+
+// 유저 목록 조회하기
+const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId, role} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 목록을 조회 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let users;
+    try {
+        users = await UserModel.find({role: "student"}).sort({_id: -1});
+    } catch (err) {
+        return next(new HttpError("유저 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (users.length === 0) {
+        res.status(200).json({data: []});
+    } else {
+        res.status(200).json({
+            data:
+                users.map((user) => ({
+                    userId: user._id,
+                    username: user.username,
+                    year: user.year,
+                    studentId: user.studentId,
+                    passQuiz: user.passQuiz,
+                    countOfWarning: user.countOfWarning,
+                }))
+        });
+    }
+};
+
 // 회원가입
 const signup = async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -226,6 +308,10 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
     const {username, year, studentId, studio, tel} = req.body;
     const {userId} = req.userData;
 
@@ -254,8 +340,135 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
 };
 
+// 경고 부과하기
+const addWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+
+};
+
+// 경고 차감하기
+const minusWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+};
+
+// 교육 이수 처리하기
+const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role} = req.userData;
+    const {userId} = req.params;
+    const {passQuiz} = req.body;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let user;
+    try {
+        user = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("교육 이수 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!user) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
+    }
+
+    if (user.passQuiz !== passQuiz) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
+    }
+
+    user.passQuiz = true;
+    await user.save();
+
+    res.status(200).json({data: user.passQuiz});
+};
+
+// 교육 미이수 처리하기
+const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role} = req.userData;
+    const {userId} = req.params;
+    const {passQuiz} = req.body;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let user;
+    try {
+        user = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("교육 미이수 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!user) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
+    }
+
+    if (user.passQuiz !== passQuiz) {
+        return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
+    }
+
+    user.passQuiz = false;
+    await user.save();
+
+    res.status(200).json({data: user.passQuiz});
+};
+
+// 유저 탈퇴하기
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
 
 };
 
-export {getUser, signup, login, updateUser, deleteUser}
+export {
+    getUser,
+    getUserInfo,
+    getUsers,
+    signup,
+    login,
+    updateUser,
+    addWarning,
+    minusWarning,
+    passQuiz,
+    resetQuiz,
+    deleteUser
+}

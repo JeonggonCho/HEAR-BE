@@ -101,6 +101,7 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     const {userId, role} = req.userData;
+    const {year, passQuiz, countOfWarning, username} = req.query;
 
     if (!userId) {
         return next(new HttpError("유효하지 않은 데이터이므로 유저 목록을 조회 할 수 없습니다.", 403));
@@ -110,9 +111,30 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
+    let filter: any = {role: "student"};
+
+    if (year && typeof year === "string" && year !== "all") {
+        const yearsFilter = year.split(",");
+        filter.year = {$in: yearsFilter};
+    }
+
+    if (passQuiz && typeof passQuiz === "string" && passQuiz !== "all") {
+        const passQuizFilter = passQuiz.split(",");
+        filter.passQuiz = {$in: passQuizFilter};
+    }
+
+    if (countOfWarning && typeof countOfWarning === "string" && countOfWarning !== "all") {
+        const countOfWarningFilter = countOfWarning.split(",").map(warning => Number(warning));
+        filter.countOfWarning = {$in: countOfWarningFilter};
+    }
+
+    if (username && typeof username === "string" && username.trim() !== "") {
+        filter.username = {$regex: username, $options: "i"};
+    }
+
     let users;
     try {
-        users = await UserModel.find({role: "student"}).sort({_id: -1});
+        users = await UserModel.find(filter).sort({_id: -1});
     } catch (err) {
         return next(new HttpError("유저 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }

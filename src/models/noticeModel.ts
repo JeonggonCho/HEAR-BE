@@ -31,6 +31,6 @@ const noticeSchema = new mongoose.Schema<INotice>({
     }],
 });
 
-const noticeModel = mongoose.model<INotice>("Notice", noticeSchema);
+const NoticeModel = mongoose.model<INotice>("Notice", noticeSchema);
 
-export default noticeModel;
+export default NoticeModel;

@@ -11,6 +11,8 @@ import {
     SawModel,
     VacuumModel
 } from "../models/machineModel";
+import {getTomorrowDate} from "../utils/calculateDate";
+import {LaserReservationModel} from "../models/reservationModel";
 
 // 레이저 커팅기 생성
 const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -119,13 +121,65 @@ const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction)
     }
 };
 
-// 레이저 커팅기 정보 조회
-const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+// 기기 활성화 상태 조회
+const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {role, userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기 상태를 조회 할 수 없습니다.", 403));
+    }
+
+    if (role !== "manager" && role !== "admin" && role !== "student") {
+        return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
+    }
+
+    let laserStatus = false;
+    let printerStatus = false;
+    let heatStatus = false;
+    let sawStatus = false;
+    let vacuumStatus = false;
+    let cncStatus = false;
+
+    try {
+        const lasers = await LaserModel.find();
+        laserStatus = lasers.some(el => el.status);
+
+        const printers = await PrinterModel.find();
+        printerStatus = printers.some(el => el.status);
+
+        const heats = await HeatModel.find();
+        heatStatus = heats.some(el => el.status);
+
+        const saws = await SawModel.find();
+        sawStatus = saws.some(el => el.status);
+
+        const vacuums = await VacuumModel.find();
+        vacuumStatus = vacuums.some(el => el.status);
+
+        const cncs = await CncModel.find();
+        cncStatus = cncs.some(el => el.status);
+    } catch (err) {
+        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(200).json({
+        data: {
+            laser: laserStatus,
+            printer: printerStatus,
+            heat: heatStatus,
+            saw: sawStatus,
+            vacuum: vacuumStatus,
+            cnc: cncStatus
+        }
+    });
+};
+
+// 레이저 커팅기 정보 조회
+const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -152,11 +206,6 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
 
 // 레이저 커팅기 시간 목록 조회
 const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
-    }
-
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -189,13 +238,66 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
     });
 };
 
-// 3d 프린터 정보 조회
-const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+// 레이저 커팅기 기기 당 예약 가능 시간 조회
+const getValidLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
+    }
+
+    let lasers;
+    try {
+        lasers = await LaserModel.find();
+    } catch (err) {
+        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    let laserTimes;
+    try {
+        laserTimes = await LaserTimeModel.find();
+    } catch (err) {
+        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    let laserReservations;
+    try {
+        const tomorrowDate = getTomorrowDate();
+        laserReservations = await LaserReservationModel.find({date: tomorrowDate});
+    } catch (err) {
+        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!lasers || !laserTimes) {
+        res.status(404).json({data: []})
+    }
+
+    let validLaserTimes = lasers.map((laser) => ({
+        laserId: laser._id,
+        laserName: laser.name,
+        laserStatus: laser.status,
+        laserTimes: laserTimes.map((laserTime) => {
+            // 해당 레이저 기기의 해당 시간대에 예약이 있는지 확인
+            const isReserved = laserReservations.some((laserReservation) =>
+                laserReservation.machineId.equals(laser._id as string) && laserReservation.time.equals(laserTime._id)
+            );
+            return {
+                timeId: laserTime._id,
+                time: `${laserTime.startTime} - ${laserTime.endTime}`,
+                timeStatus: !isReserved,  // 예약이 있으면 false, 없으면 true
+            };
+        }),
+    }));
+
+    res.status(200).json({data: validLaserTimes});
+};
+
+// 3d 프린터 정보 조회
+const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -218,16 +320,10 @@ const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction
     }
 
     res.status(200).json({data: {printers}});
-
 };
 
 // 열선 정보 조회
 const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
-    }
-
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -254,11 +350,6 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
 
 // 톱 정보 조회
 const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
-    }
-
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -285,11 +376,6 @@ const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) =>
 
 // 사출 성형기 정보 조회
 const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
-    }
-
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -316,11 +402,6 @@ const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction)
 
 // cnc 정보 조회
 const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
-    }
-
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -718,8 +799,10 @@ export {
     newLaser,
     newLaserTime,
     newPrinter,
+    getStatus,
     getLasers,
     getLaserTimes,
+    getValidLaserTimes,
     getPrinters,
     getHeats,
     getSaws,

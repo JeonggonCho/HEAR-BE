@@ -1,5 +1,15 @@
-import {check} from "express-validator";
+import {body, check} from "express-validator";
 import dayjs from "dayjs";
+
+const laserValidator = [
+    body().isArray().withMessage('요청은 배열 구조여야 합니다'),
+    body('*.date')
+        .isISO8601().withMessage('유효한 날짜 형식이여야 합니다 (YYYY-MM-DD)'),
+    body('*.machineId')
+        .isMongoId().withMessage('유효하지 않은 기기 아이디 형식입니다'),
+    body('*.timeId')
+        .isMongoId().withMessage('유효하지 않은 시간 아이디 형식입니다'),
+];
 
 const heatValidator = [
     check("check")
@@ -37,4 +47,4 @@ const cncValidator = [
         })
 ];
 
-export {heatValidator, cncValidator};
+export {laserValidator, heatValidator, cncValidator};

@@ -48,15 +48,19 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         creator: userId,
     });
 
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
     try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
         await createdFeedback.save({session: sess});
         user.feedback.push(createdFeedback._id);
         await user.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("피드백 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 
     res.status(201).json({data: {feedbackId: createdFeedback._id}});
@@ -214,19 +218,22 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
         return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
     }
 
-    try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
-        feedback.creator.feedback = feedback.creator.feedback.filter(
-            (id) => id.toString() !== feedback._id.toString()
+    try {
+        feedback.creator.feedback = feedback.creator.feedback.filter((id) =>
+            id.toString() !== feedback._id.toString()
         );
 
         await feedback.creator.save({session: sess});
         await feedback.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("피드백 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 
     res.status(204).json({message: "피드백이 삭제되었습니다."});

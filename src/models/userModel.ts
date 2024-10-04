@@ -12,7 +12,8 @@ export interface IUser extends Document {
     tel: string; // 모든 유저
     studentId: string; // 모든 유저
     countOfWarning?: number; // student
-    countOfLaser?: number; // student
+    countOfLaserPerWeek: number; // 모든 유저
+    countOfLaserPerDay: number; // 모든 유저
     refreshTokenId: mongoose.Types.ObjectId; // 모든 유저
     inquiries?: mongoose.Types.ObjectId[]; // student
     feedback: mongoose.Types.ObjectId[];
@@ -71,12 +72,15 @@ const userSchema = new mongoose.Schema<IUser>({
             return this.role === "student";
         },
     },
-    countOfLaser: {
+    countOfLaserPerWeek: {
         type: Number,
         default: 4,
-        required: function (this: IUser) {
-            return this.role === "student";
-        },
+        required: true,
+    },
+    countOfLaserPerDay: {
+        type: Number,
+        default: 2,
+        required: true,
     },
     refreshTokenId: {
         type: Schema.Types.ObjectId,
@@ -113,12 +117,10 @@ userSchema.pre('save', function (next) {
         delete user.studio;
         delete user.year;
         delete user.countOfWarning;
-        delete user.countOfLaser;
         delete user.inquiries;
         delete user.lab;
     } else if (user.role === "manager") {
         delete user.countOfWarning;
-        delete user.countOfLaser;
         delete user.inquiries;
     } else if (user.role === "student") {
         delete user.lab;

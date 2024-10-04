@@ -56,20 +56,24 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
     });
 
     // 문의 저장 및 유저에 등록
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
     try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
         await createdInquiry.save({session: sess});
 
         if (!user.inquiries) {
             user.inquiries = [];
         }
         user.inquiries.push(createdInquiry._id);
-        
+
         await user.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("문의 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 
     res.status(201).json({data: {inquiryId: createdInquiry._id}});
@@ -247,21 +251,23 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     }
 
     // 문의 삭제 시, 유저의 문의 목록에서도 삭제하기
-    try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
+    try {
         if (inquiry.creator.role === "student" && inquiry.creator.inquiries) {
             inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
                 (id) => id.toString() !== inquiry._id.toString()
             );
             await inquiry.creator.save({session: sess});
         }
-
         await inquiry.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 
     res.status(204).json({message: "문의가 삭제되었습니다."});

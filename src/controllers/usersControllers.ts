@@ -44,7 +44,8 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
             studentId: existingUser.studentId,
             studio: existingUser.studio,
             passQuiz: existingUser.passQuiz,
-            countOfLaser: existingUser.countOfLaser,
+            countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
+            countOfLaserPerDay: existingUser.countOfLaserPerDay,
             countOfWarning: existingUser.countOfWarning,
             tel: existingUser.tel,
             role: existingUser.role,
@@ -198,15 +199,16 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         tel,
         studentId,
         countOfWarning: 0,
-        countOfLaser: 4,
+        countOfLaserPerWeek: 4,
+        countOfLaserPerDay: 2,
         refreshTokenId: new mongoose.Types.ObjectId(), // 임시 토큰 아이디
     });
 
     // 트랜잭션을 사용해 유저 및 리프레시 토큰 생성
-    try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
+    try {
         // 유저 저장
         await createdUser.save({session: sess});
 
@@ -220,7 +222,6 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         await createdUser.save({session: sess});
 
         await sess.commitTransaction();
-        await sess.endSession();
 
         // JWT 액세스 토큰 생성
         const accessToken = jwt.sign({
@@ -231,7 +232,6 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             studentId: createdUser.studentId,
         });
 
-        // 결과 반환
         res.status(201).json({
             data: {
                 userId: createdUser._id,
@@ -241,7 +241,8 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
                 year: createdUser.year,
                 studio: createdUser.studio,
                 passQuiz: createdUser.passQuiz,
-                countOfLaser: createdUser.countOfLaser,
+                countOfLaserPerWeek: createdUser.countOfLaserPerWeek,
+                countOfLaserPerDay: createdUser.countOfLaserPerDay,
                 countOfWarning: createdUser.countOfWarning,
                 tel: createdUser.tel,
                 role: createdUser.role,
@@ -250,7 +251,10 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             },
         });
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("회원가입 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 };
 
@@ -310,7 +314,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 year: existingUser.year,
                 studio: existingUser.studio,
                 passQuiz: existingUser.passQuiz,
-                countOfLaser: existingUser.countOfLaser,
+                countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
+                countOfLaserPerDay: existingUser.countOfLaserPerDay,
                 countOfWarning: existingUser.countOfWarning,
                 tel: existingUser.tel,
                 role: existingUser.role,

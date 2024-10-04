@@ -13,6 +13,7 @@ import {
 } from "../models/machineModel";
 import {getTomorrowDate} from "../utils/calculateDate";
 import {LaserReservationModel} from "../models/reservationModel";
+import mongoose from "mongoose";
 
 // 레이저 커팅기 생성
 const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -239,7 +240,7 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
 };
 
 // 레이저 커팅기 기기 당 예약 가능 시간 조회
-const getValidLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -276,24 +277,29 @@ const getValidLaserTimes = async (req: CustomRequest, res: Response, next: NextF
         res.status(404).json({data: []})
     }
 
-    let validLaserTimes = lasers.map((laser) => ({
+    let laserInfo = lasers.map((laser) => ({
         laserId: laser._id,
         laserName: laser.name,
         laserStatus: laser.status,
-        laserTimes: laserTimes.map((laserTime) => {
+    }));
+
+    let laserTimesInfo = lasers.map((laser) =>
+        laserTimes.map((laserTime) => {
             // 해당 레이저 기기의 해당 시간대에 예약이 있는지 확인
+            // TODO 날짜도 확인해야 함 -> 내일 날짜인지 확인
             const isReserved = laserReservations.some((laserReservation) =>
-                laserReservation.machineId.equals(laser._id as string) && laserReservation.time.equals(laserTime._id)
+                laserReservation.machineId.equals(laser._id as string) && laserReservation.timeId.equals(laserTime._id) && (laserReservation.date === laserReservation.date)
             );
             return {
+                laserId: laser._id,
                 timeId: laserTime._id,
-                time: `${laserTime.startTime} - ${laserTime.endTime}`,
+                timeContent: `${laserTime.startTime} - ${laserTime.endTime}`,
                 timeStatus: !isReserved,  // 예약이 있으면 false, 없으면 true
             };
         }),
-    }));
+    ).flat();
 
-    res.status(200).json({data: validLaserTimes});
+    res.status(200).json({data: {laserInfo, laserTimesInfo}});
 };
 
 // 3d 프린터 정보 조회
@@ -485,30 +491,30 @@ const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFun
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
-    const session = await LaserTimeModel.startSession(); // 트랜잭션 세션 시작
-    session.startTransaction();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
     try {
         // 1. 기존 데이터 모두 삭제
-        await LaserTimeModel.deleteMany({}, {session});
+        await LaserTimeModel.deleteMany({}, {session: sess});
 
         // 2. 새로운 데이터 삽입
         for (const laserTime of laserTimeList) {
             const newLaserTime = new LaserTimeModel(laserTime);
-            await newLaserTime.save({session});
+            await newLaserTime.save({session: sess});
         }
 
         // 3. 트랜잭션 커밋 (모든 작업이 성공하면 확정)
-        await session.commitTransaction();
-        session.endSession();
-
-        res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
+        await sess.commitTransaction();
     } catch (error) {
         // 4. 오류 발생 시 롤백
-        await session.abortTransaction();
-        session.endSession();
+        await sess.abortTransaction();
         return next(new HttpError("레이저 커팅기 시간 목록 수정 중 오류가 발생했습니다.", 500));
+    } finally {
+        await sess.endSession();
     }
+
+    res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
 };
 
 // 3d 프린터 정보 수정
@@ -802,7 +808,7 @@ export {
     getStatus,
     getLasers,
     getLaserTimes,
-    getValidLaserTimes,
+    getValidLaserInfo,
     getPrinters,
     getHeats,
     getSaws,

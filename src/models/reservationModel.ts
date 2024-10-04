@@ -8,7 +8,7 @@ export interface IReservation extends Document {
 
 export interface ILaserReservation extends IReservation {
     machineId: mongoose.Types.ObjectId;
-    time: mongoose.Types.ObjectId;
+    timeId: mongoose.Types.ObjectId;
 }
 
 export interface IPrinterReservation extends IReservation {
@@ -36,7 +36,7 @@ const laserReservationSchema = new mongoose.Schema<ILaserReservation>({
         required: true,
         ref: "Laser",
     },
-    time: {
+    timeId: {
         type: Schema.Types.ObjectId,
         required: true,
         ref: "LaserTime",

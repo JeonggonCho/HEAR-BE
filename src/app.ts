@@ -1,8 +1,8 @@
 import express, {NextFunction, Request, Response} from "express";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import Agenda from "agenda";
 import mongoose from "mongoose";
+import Agenda from "agenda";
 
 import usersRoutes from "./routes/usersRoutes";
 import inquiriesRoutes from "./routes/inquiriesRoutes";

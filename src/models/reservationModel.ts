@@ -15,6 +15,11 @@ export interface IPrinterReservation extends IReservation {
     machineId: mongoose.Types.ObjectId;
 }
 
+export interface ISawVacuumReservation extends IReservation {
+    startTime: string;
+    endTime: string;
+}
+
 const laserReservationSchema = new mongoose.Schema<ILaserReservation>({
     machine: {
         type: String,
@@ -66,10 +71,36 @@ const printerReservationSchema = new mongoose.Schema<IPrinterReservation>({
     },
 });
 
-const commonReservationSchema = new mongoose.Schema<IReservation>({
+const sawVacuumReservationSchema = new mongoose.Schema<ISawVacuumReservation>({
     machine: {
         type: String,
-        enum: ["heat", "saw", "vacuum", "cnc"],
+        enum: ["saw", "vacuum"],
+        required: true,
+    },
+    date: {
+        type: Date,
+        required: true,
+        index: true,
+    },
+    userId: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: 'User',
+    },
+    startTime: {
+        type: String,
+        required: true,
+    },
+    endTime: {
+        type: String,
+        required: true,
+    },
+});
+
+const heatCncReservationSchema = new mongoose.Schema<IReservation>({
+    machine: {
+        type: String,
+        enum: ["heat", "cnc"],
         required: true,
     },
     date: {
@@ -86,10 +117,10 @@ const commonReservationSchema = new mongoose.Schema<IReservation>({
 
 const LaserReservationModel = mongoose.model<ILaserReservation>("LaserReservation", laserReservationSchema);
 const PrinterReservationModel = mongoose.model<IPrinterReservation>("PrinterReservation", printerReservationSchema);
-const HeatReservationModel = mongoose.model<IReservation>("HeatReservation", commonReservationSchema);
-const SawReservationModel = mongoose.model<IReservation>("SawReservation", commonReservationSchema);
-const VacuumReservationModel = mongoose.model<IReservation>("VacuumReservation", commonReservationSchema);
-const CncReservationModel = mongoose.model<IReservation>("CncReservation", commonReservationSchema);
+const HeatReservationModel = mongoose.model<IReservation>("HeatReservation", heatCncReservationSchema);
+const SawReservationModel = mongoose.model<ISawVacuumReservation>("SawReservation", sawVacuumReservationSchema);
+const VacuumReservationModel = mongoose.model<ISawVacuumReservation>("VacuumReservation", sawVacuumReservationSchema);
+const CncReservationModel = mongoose.model<IReservation>("CncReservation", heatCncReservationSchema);
 
 export {
     LaserReservationModel,

@@ -29,6 +29,34 @@ const heatValidator = [
         })
 ];
 
+const sawVacuumValidator = [
+    body("date")
+        .isISO8601().withMessage("유효한 날짜 형식이여야 합니다 (YYYY-MM-DD)")
+        .custom((value) => {
+            const todayDate = dayjs().startOf("day");
+            const selectedDate = dayjs(value, "YYYY-MM-DD", true).startOf("day");
+
+            if (!selectedDate.isAfter(todayDate)) {
+                throw new Error("유효한 날짜만 예약 가능합니다");
+            }
+            return true;
+        }),
+    body("startTime")
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('시작 시간은 HH:MM 형식이어야 합니다'),
+    body("endTime")
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage("종료 시간은 HH:MM 형식이어야 합니다")
+        .custom((endTime, {req}) => {
+            const [startHour, startMinute] = req.body.startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            if (startHour > endHour || (startHour === endHour && startMinute >= endMinute)) {
+                throw new Error("종료 시간이 시작 시간보다 이후여야 합니다");
+            }
+            return true;
+        }),
+];
+
 const cncValidator = [
     check("check")
         .isBoolean().withMessage("반드시 체크되어야 합니다")
@@ -47,4 +75,4 @@ const cncValidator = [
         })
 ];
 
-export {laserValidator, heatValidator, cncValidator};
+export {laserValidator, heatValidator, sawVacuumValidator, cncValidator};

@@ -5,9 +5,9 @@ import {validationResult} from "express-validator";
 import {CustomRequest} from "../middlewares/checkAuth";
 
 import HttpError from "../models/errorModel";
-import {LaserReservationModel} from "../models/reservationModel";
+import {LaserReservationModel, SawReservationModel, VacuumReservationModel} from "../models/reservationModel";
 import UserModel from "../models/userModel";
-import {LaserModel, LaserTimeModel} from "../models/machineModel";
+import {LaserModel, LaserTimeModel, SawModel, VacuumModel} from "../models/machineModel";
 import {getTomorrowDate} from "../utils/calculateDate";
 
 // 레이저 커팅기 예약하기
@@ -144,12 +144,110 @@ const newHeatReservation = async (req: CustomRequest, res: Response, next: NextF
 
 // 톱 예약하기
 const newSawReservation = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    console.log(req.body);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
+    const {date, startTime, endTime} = req.body;
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 톱을 예약 할 수 없습니다.", 403));
+    }
+
+    // 톱 조회하기
+    let sawMachine;
+    try {
+        sawMachine = await SawModel.find();
+    } catch (err) {
+        return next(new HttpError("톱 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 톱이 있는지, 혹은 현재 활성화 상태인지 확인
+    if (sawMachine.length === 0 || !sawMachine[0].status) {
+        return next(new HttpError("유효하지 않은 데이터이므로 톱을 예약 할 수 없습니다.", 403));
+    }
+
+    // 톱 예약 모델 객체 생성
+    const createdSawReservation = new SawReservationModel({
+        machine: "saw",
+        userId: userId,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+    });
+
+    // 톱 예약 저장하기
+    try {
+        await createdSawReservation.save();
+    } catch (err) {
+        return next(new HttpError("톱 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(201).json({data: {message: "톱 예약 성공"}});
 };
 
-// 사출성형기 예약하기
+// 사출 성형기 예약하기
 const newVacuumReservation = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    console.log(req.body);
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
+    const {date, startTime, endTime} = req.body;
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 사출 성형기를 예약 할 수 없습니다.", 403));
+    }
+
+    // 사출 성형기 조회하기
+    let vacuumMachine;
+    try {
+        vacuumMachine = await VacuumModel.find();
+    } catch (err) {
+        return next(new HttpError("사출 성형기 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 사출 성형기가 있는지, 혹은 현재 활성화 상태인지 확인
+    if (vacuumMachine.length === 0 || !vacuumMachine[0].status) {
+        return next(new HttpError("유효하지 않은 데이터이므로 사출 성형기를 예약 할 수 없습니다.", 403));
+    }
+
+    // 사출 성형기 예약 모델 객체 생성
+    const createdVacuumReservation = new VacuumReservationModel({
+        machine: "vacuum",
+        userId: userId,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+    });
+
+    // 사출 성형기 예약 저장하기
+    try {
+        await createdVacuumReservation.save();
+    } catch (err) {
+        return next(new HttpError("사출 성형기 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(201).json({data: {message: "사출 성형기 예약 성공"}});
 };
 
 // cnc 예약하기

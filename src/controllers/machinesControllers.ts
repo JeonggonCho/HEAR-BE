@@ -285,11 +285,12 @@ const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFu
 
     let laserTimesInfo = lasers.map((laser) =>
         laserTimes.map((laserTime) => {
-            // 해당 레이저 기기의 해당 시간대에 예약이 있는지 확인
-            // TODO 날짜도 확인해야 함 -> 내일 날짜인지 확인
-            const isReserved = laserReservations.some((laserReservation) =>
-                laserReservation.machineId.equals(laser._id as string) && laserReservation.timeId.equals(laserTime._id) && (laserReservation.date === laserReservation.date)
-            );
+            // 내일 사용 시간에 해당 레이저 기기의 해당 시간대에 예약이 있는지 확인
+            const isReserved = laserReservations.some((laserReservation) => {
+                // 예약 내역의 시간 데이터 포맷 변환
+                const formattedDate = `${laserReservation.date.getFullYear()}-${(laserReservation.date.getMonth() + 1).toString().padStart(2, '0')}-${laserReservation.date.getDate().toString().padStart(2, '0')}`;
+                return laserReservation.machineId.equals(laser._id as string) && laserReservation.timeId.equals(laserTime._id) && (formattedDate === getTomorrowDate());
+            });
             return {
                 laserId: laser._id,
                 timeId: laserTime._id,

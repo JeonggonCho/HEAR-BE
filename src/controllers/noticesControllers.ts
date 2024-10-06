@@ -91,6 +91,38 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
     return res.status(200).json({data});
 };
 
+// 최신 공지 가져오기
+const getLatestNotices = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 최신 공지를 조회 할 수 없습니다.", 403));
+    }
+
+    let latestNotices;
+    try {
+        latestNotices = await NoticeModel.find().sort({createdAt: -1}).limit(4);
+    } catch (err) {
+        return next(new HttpError("최신 공지 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (latestNotices.length === 0) {
+        return res.status(200).json({data: []});
+    }
+
+    const filteredLatestNotices = latestNotices.map((n) => ({
+            noticeId: n._id,
+            title: n.title
+        })
+    );
+
+    res.status(200).json({data: filteredLatestNotices});
+};
+
 // 공지 디테일 조회
 const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -98,6 +130,11 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
     }
 
     const {noticeId} = req.params;
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
+    }
 
     if (!noticeId) {
         return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
@@ -194,4 +231,4 @@ const deleteNotice = async (req: CustomRequest, res: Response, next: NextFunctio
     res.status(204).json({message: "공지가 삭제되었습니다."});
 };
 
-export {newNotice, getNotices, getNotice, updateNotice, deleteNotice};
+export {newNotice, getNotices, getLatestNotices, getNotice, updateNotice, deleteNotice};

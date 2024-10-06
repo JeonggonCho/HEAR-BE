@@ -1,13 +1,21 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
 import {noticeValidator} from "../validators/qnaValidators";
-import {deleteNotice, getNotice, getNotices, newNotice, updateNotice} from "../controllers/noticesControllers";
+import {
+    deleteNotice,
+    getLatestNotices,
+    getNotice,
+    getNotices,
+    newNotice,
+    updateNotice
+} from "../controllers/noticesControllers";
 
 const router = express.Router();
 
 router.post("/new", checkAuth, noticeValidator, newNotice);
 
 router.get("/", checkAuth, getNotices);
+router.get("/latest", checkAuth, getLatestNotices);
 router.get("/:noticeId", checkAuth, getNotice);
 
 router.patch("/:noticeId", checkAuth, noticeValidator, updateNotice);

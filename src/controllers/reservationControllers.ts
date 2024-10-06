@@ -5,9 +5,15 @@ import {validationResult} from "express-validator";
 import {CustomRequest} from "../middlewares/checkAuth";
 
 import HttpError from "../models/errorModel";
-import {LaserReservationModel, SawReservationModel, VacuumReservationModel} from "../models/reservationModel";
+import {
+    CncReservationModel,
+    LaserReservationModel,
+    SawReservationModel,
+    VacuumReservationModel
+} from "../models/reservationModel";
 import UserModel from "../models/userModel";
-import {LaserModel, LaserTimeModel, SawModel, VacuumModel} from "../models/machineModel";
+import {CncModel, LaserModel, LaserTimeModel, SawModel, VacuumModel} from "../models/machineModel";
+
 import {getTomorrowDate} from "../utils/calculateDate";
 
 // 레이저 커팅기 예약하기
@@ -84,13 +90,18 @@ const newLaserReservation = async (req: CustomRequest, res: Response, next: Next
         let laserTime;
         let laserReservationInfo;
         try {
+            console.log(reservationInfo.timeId, reservationInfo.date)
             laserTime = await LaserTimeModel.findById(reservationInfo.timeId);
-            laserReservationInfo = await LaserReservationModel.find({timeId: reservationInfo.timeId});
+            laserReservationInfo = await LaserReservationModel.find({
+                timeId: reservationInfo.timeId,
+                date: new Date(reservationInfo.date),
+            });
         } catch (err) {
             return next(new HttpError("레이저 커팅기 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
         }
 
         if (!laserTime || laserReservationInfo.length > 0) {
+            console.log(laserTime, laserReservationInfo)
             return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기를 예약 할 수 없습니다.", 403));
         }
     }
@@ -139,6 +150,10 @@ const newHeatReservation = async (req: CustomRequest, res: Response, next: NextF
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
+    // TODO 현재 가용 가능한 열선이 있는지 개수 확인
+
+    // TODO 날짜가 주말인지, 공휴일인지 유효성 검사 확인 필요
+
     console.log(req.body);
 };
 
@@ -176,6 +191,8 @@ const newSawReservation = async (req: CustomRequest, res: Response, next: NextFu
     if (sawMachine.length === 0 || !sawMachine[0].status) {
         return next(new HttpError("유효하지 않은 데이터이므로 톱을 예약 할 수 없습니다.", 403));
     }
+
+    // TODO 날짜가 주말인지, 공휴일인지 유효성 검사 확인 필요
 
     // 톱 예약 모델 객체 생성
     const createdSawReservation = new SawReservationModel({
@@ -231,6 +248,8 @@ const newVacuumReservation = async (req: CustomRequest, res: Response, next: Nex
         return next(new HttpError("유효하지 않은 데이터이므로 사출 성형기를 예약 할 수 없습니다.", 403));
     }
 
+    // TODO 날짜가 주말인지, 공휴일인지 유효성 검사 확인 필요
+
     // 사출 성형기 예약 모델 객체 생성
     const createdVacuumReservation = new VacuumReservationModel({
         machine: "vacuum",
@@ -257,7 +276,55 @@ const newCncReservation = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
-    console.log(req.body);
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    if (!req.body) {
+        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
+    }
+
+    const {date} = req.body;
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 CNC를 예약 할 수 없습니다.", 403));
+    }
+
+    // CNC 조회하기
+    let cncMachine;
+    try {
+        cncMachine = await CncModel.find();
+    } catch (err) {
+        return next(new HttpError("CNC 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // CNC가 있는지, 혹은 현재 활성화 상태인지 확인
+    if (cncMachine.length === 0 || !cncMachine[0].status) {
+        return next(new HttpError("유효하지 않은 데이터이므로 CNC를 예약 할 수 없습니다.", 403));
+    }
+
+    // TODO 날짜가 주말인지, 공휴일인지 2일 뒤가 맞는지 유효성 검사 확인 필요
+
+    // TODO 같은 날짜에 이미 예약이 되어있는지 확인
+
+    // TODO 유저가 4학년 이상인지,
+
+    // CNC 예약 모델 객체 생성
+    const createdCncReservation = new CncReservationModel({
+        machine: "cnc",
+        date: date,
+        userId: userId,
+    });
+
+    // CNC 예약 저장하기
+    try {
+        await createdCncReservation.save();
+    } catch (err) {
+        return next(new HttpError("CNC 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    res.status(201).json({data: {message: "CNC 예약 성공"}});
 };
 
 export {

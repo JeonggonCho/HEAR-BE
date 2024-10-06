@@ -2,6 +2,7 @@ import express from "express";
 import {
     addWarning,
     deleteUser,
+    getManager,
     getUser,
     getUserInfo,
     getUsers,
@@ -29,6 +30,7 @@ router.post("/login", loginValidator, login);
 
 router.get("/", checkAuth, getUser);
 router.get("/all", checkAuth, getUsers);
+router.get("/manager", checkAuth, getManager);
 router.get("/:userId", checkAuth, getUserInfo);
 
 router.patch("/", checkAuth, updateAccountValidator, updateUser);

@@ -157,6 +157,32 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 };
 
+// 조교 정보 조회하기
+const getManager = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    if (!userId) {
+        return next(new HttpError("유효하지 않은 데이터이므로 조교 정보를 조회 할 수 없습니다.", 403));
+    }
+
+    let manager;
+    try {
+        manager = await UserModel.find({role: "manager"});
+    } catch (err) {
+        return next(new HttpError("조교 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (manager.length === 0) {
+        return next(new HttpError("조교 정보를 조회 할 수 없습니다.", 403));
+    }
+
+    res.status(200).json({data: {username: manager[0].username, lab: manager[0].lab}});
+};
+
 // 회원가입
 const signup = async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -554,6 +580,7 @@ export {
     getUser,
     getUserInfo,
     getUsers,
+    getManager,
     signup,
     login,
     updateUser,

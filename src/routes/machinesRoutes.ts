@@ -12,7 +12,6 @@ import {
     getSaws,
     getStatus,
     getVacuums,
-    getValidLaserInfo,
     newLaser,
     newLaserTime,
     newPrinter,
@@ -39,9 +38,6 @@ const router = express.Router();
 
 // 예약 메인 페이지에서 기기 활성화 상태 조회
 router.get("/status", checkAuth, getStatus);
-
-// 레이저 커팅기 기기 당 예약 가능 시간 조회
-router.get("/lasers/info", checkAuth, getValidLaserInfo);
 
 // 조교 및 관리자 기기 관리 페이지에서 기기 정보 조회
 router.get("/lasers", checkAuth, getLasers);

@@ -7,8 +7,12 @@ const laserValidator = [
         .isISO8601().withMessage('유효한 날짜 형식이여야 합니다 (YYYY-MM-DD)'),
     body('*.machineId')
         .isMongoId().withMessage('유효하지 않은 기기 아이디 형식입니다'),
-    body('*.timeId')
-        .isMongoId().withMessage('유효하지 않은 시간 아이디 형식입니다'),
+    body('*.startTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage('시작 시간은 HH:MM 형식이어야 합니다'),
+    body('*.endTime')
+        .matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+        .withMessage("종료 시간은 HH:MM 형식이어야 합니다"),
 ];
 
 const heatValidator = [

@@ -11,9 +11,8 @@ import {
     SawModel,
     VacuumModel
 } from "../models/machineModel";
-import {getTomorrowDate} from "../utils/calculateDate";
-import {LaserReservationModel} from "../models/reservationModel";
 import mongoose from "mongoose";
+
 
 // 레이저 커팅기 생성
 const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -46,6 +45,7 @@ const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("레이저 커팅기 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 };
+
 
 // 레이저 커팅기 시간 추가
 const newLaserTime = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -86,6 +86,7 @@ const newLaserTime = async (req: CustomRequest, res: Response, next: NextFunctio
     }
 };
 
+
 // 3d 프린터 생성
 const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -121,6 +122,7 @@ const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("3d 프린터 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 };
+
 
 // 기기 활성화 상태 조회
 const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -179,6 +181,7 @@ const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) 
     });
 };
 
+
 // 레이저 커팅기 정보 조회
 const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -204,6 +207,7 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
 
     res.status(200).json({data: {lasers}});
 };
+
 
 // 레이저 커팅기 시간 목록 조회
 const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -239,69 +243,6 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
     });
 };
 
-// 레이저 커팅기 기기 당 예약 가능 시간 조회
-const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    if (!req.userData) {
-        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
-    let lasers;
-    try {
-        lasers = await LaserModel.find();
-    } catch (err) {
-        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
-
-    let laserTimes;
-    try {
-        laserTimes = await LaserTimeModel.find();
-    } catch (err) {
-        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
-
-    let laserReservations;
-    try {
-        const tomorrowDate = getTomorrowDate();
-        laserReservations = await LaserReservationModel.find({date: tomorrowDate});
-    } catch (err) {
-        return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
-
-    if (!lasers || !laserTimes) {
-        res.status(404).json({data: []})
-    }
-
-    let laserInfo = lasers.map((laser) => ({
-        laserId: laser._id,
-        laserName: laser.name,
-        laserStatus: laser.status,
-    }));
-
-    let laserTimesInfo = lasers.map((laser) =>
-        laserTimes.map((laserTime) => {
-            // 내일 사용 시간에 해당 레이저 기기의 해당 시간대에 예약이 있는지 확인
-            const isReserved = laserReservations.some((laserReservation) => {
-                // 예약 내역의 시간 데이터 포맷 변환
-                const formattedDate = `${laserReservation.date.getFullYear()}-${(laserReservation.date.getMonth() + 1).toString().padStart(2, '0')}-${laserReservation.date.getDate().toString().padStart(2, '0')}`;
-                return laserReservation.machineId.equals(laser._id as string) && laserReservation.timeId.equals(laserTime._id) && (formattedDate === getTomorrowDate());
-            });
-            return {
-                laserId: laser._id,
-                timeId: laserTime._id,
-                timeContent: `${laserTime.startTime} - ${laserTime.endTime}`,
-                timeStatus: !isReserved,  // 예약이 있으면 false, 없으면 true
-            };
-        }),
-    ).flat();
-
-    res.status(200).json({data: {laserInfo, laserTimesInfo}});
-};
 
 // 3d 프린터 정보 조회
 const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -329,6 +270,7 @@ const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction
     res.status(200).json({data: {printers}});
 };
 
+
 // 열선 정보 조회
 const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -354,6 +296,7 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     res.status(200).json({data: {heats}});
 };
+
 
 // 톱 정보 조회
 const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -381,6 +324,7 @@ const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) =>
     res.status(200).json({data: {saws}});
 };
 
+
 // 사출 성형기 정보 조회
 const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -407,6 +351,7 @@ const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction)
     res.status(200).json({data: {vacuums}});
 };
 
+
 // cnc 정보 조회
 const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -432,6 +377,7 @@ const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) =>
 
     res.status(200).json({data: {cncs}});
 };
+
 
 // 레이저 커팅기 정보 수정
 const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -469,6 +415,7 @@ const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction
 
     res.status(200).json({message: "레이저 커팅기 수정완료"});
 };
+
 
 // 레이저 커팅기 시간 목록 수정
 const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -518,6 +465,7 @@ const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFun
     res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
 };
 
+
 // 3d 프린터 정보 수정
 const updatePrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -554,6 +502,7 @@ const updatePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
 
     res.status(200).json({message: "3d 프린터 수정완료"});
 };
+
 
 // 열선 정보 수정
 const updateHeat = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -592,6 +541,7 @@ const updateHeat = async (req: CustomRequest, res: Response, next: NextFunction)
     res.status(200).json({message: "열선 수정완료"});
 };
 
+
 // 톱 정보 수정
 const updateSaw = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -628,6 +578,7 @@ const updateSaw = async (req: CustomRequest, res: Response, next: NextFunction) 
 
     res.status(200).json({message: "톱 수정완료"});
 };
+
 
 // 사출 성형기 정보 수정
 const updateVacuum = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -666,6 +617,7 @@ const updateVacuum = async (req: CustomRequest, res: Response, next: NextFunctio
     res.status(200).json({message: "사출 성형기 수정완료"});
 };
 
+
 // cnc 정보 수정
 const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -703,6 +655,7 @@ const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) 
     res.status(200).json({message: "cnc 수정완료"});
 };
 
+
 // 레이저 커팅기 기기 삭제
 const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -733,6 +686,7 @@ const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction
 
     res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
 };
+
 
 // 레이저 커팅기 시간 삭제
 const deleteLaserTime = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -770,6 +724,7 @@ const deleteLaserTime = async (req: CustomRequest, res: Response, next: NextFunc
         res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
     }
 };
+
 
 // 3d 프린터 기기 삭제
 const deletePrinter = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -809,7 +764,6 @@ export {
     getStatus,
     getLasers,
     getLaserTimes,
-    getValidLaserInfo,
     getPrinters,
     getHeats,
     getSaws,

@@ -49,6 +49,7 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
             countOfWarning: existingUser.countOfWarning,
             tel: existingUser.tel,
             role: existingUser.role,
+            lab: existingUser.lab,
         }
     });
 };
@@ -345,6 +346,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 countOfWarning: existingUser.countOfWarning,
                 tel: existingUser.tel,
                 role: existingUser.role,
+                lab: existingUser.lab,
                 accessToken,
                 refreshToken,
             }

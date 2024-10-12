@@ -1,11 +1,12 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
 import {
-    getAllCncReservation,
-    getAllHeatReservation,
-    getAllPrinterReservation,
-    getAllSawReservation,
-    getAllVacuumReservation,
+    getAllCncReservations,
+    getAllHeatReservations,
+    getAllPrinterReservations,
+    getAllReservations,
+    getAllSawReservations,
+    getAllVacuumReservations,
     getValidLaserInfo,
     newCncReservation,
     newHeatReservation,
@@ -22,11 +23,18 @@ const router = express.Router();
 router.get("/lasers", checkAuth, getValidLaserInfo);
 
 // 예약 현황 조회
-router.get("/printers", checkAuth, getAllPrinterReservation);
-router.get("/heats", checkAuth, getAllHeatReservation);
-router.get("/saws", checkAuth, getAllSawReservation);
-router.get("/vacuums", checkAuth, getAllVacuumReservation);
-router.get("/cncs", checkAuth, getAllCncReservation);
+router.get("/all", checkAuth, getAllReservations);
+router.get("/printers", checkAuth, getAllPrinterReservations);
+router.get("/heats", checkAuth, getAllHeatReservations);
+router.get("/saws", checkAuth, getAllSawReservations);
+router.get("/vacuums", checkAuth, getAllVacuumReservations);
+router.get("/cncs", checkAuth, getAllCncReservations);
+
+// 나의 예약 내역 조회하기
+
+
+// 나의 과거 사용 조회하기
+
 
 // 예약하기
 router.post("/lasers", checkAuth, laserValidator, newLaserReservation);

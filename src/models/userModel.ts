@@ -18,6 +18,8 @@ export interface IUser extends Document {
     inquiries?: mongoose.Types.ObjectId[]; // student
     feedback: mongoose.Types.ObjectId[];
     lab?: string; // manager
+    createdAt?: Date; // 가입일
+    updatedAt?: Date; // 마지막 수정일
 }
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -105,14 +107,15 @@ const userSchema = new mongoose.Schema<IUser>({
             return this.role === "manager";
         },
     },
-});
+}, {timestamps: true});
 
 userSchema.plugin(uniqueValidator);
 
-userSchema.pre('save', function (next) {
-    const user = this as IUser;
+userSchema.pre<IUser>('save', function (next) {
+    const user = this;
 
     if (user.role === "admin") {
+        // Admin에게 필요하지 않은 필드 삭제
         delete user.passQuiz;
         delete user.studio;
         delete user.year;
@@ -120,11 +123,14 @@ userSchema.pre('save', function (next) {
         delete user.inquiries;
         delete user.lab;
     } else if (user.role === "manager") {
+        // Manager에게 필요하지 않은 필드 삭제
         delete user.countOfWarning;
         delete user.inquiries;
     } else if (user.role === "student") {
+        // Student에게 필요하지 않은 필드 삭제
         delete user.lab;
     }
+    
     next();
 });
 

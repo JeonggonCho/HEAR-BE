@@ -157,6 +157,10 @@ const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) 
         const heats = await HeatModel.find();
         heatStatus = heats.some(el => el.status);
 
+        if (heats[0].count === 0) {
+            heatStatus = false;
+        }
+
         const saws = await SawModel.find();
         sawStatus = saws.some(el => el.status);
 
@@ -227,7 +231,7 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
 
     let laserTimes;
     try {
-        laserTimes = await LaserTimeModel.find();
+        laserTimes = await LaserTimeModel.find().sort({_id: 1});
     } catch (err) {
         return next(new HttpError("레이저 커팅기 시간 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }

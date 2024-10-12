@@ -97,17 +97,9 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
 
     let inquiries: any[];
     try {
-        if (role === "student") {
-            inquiries = await InquiryModel.find({creator: userId}).sort({createdAt: -1}).populate<{
-                creator: IPopulatedInquiryUser
-            }>("creator");
-        } else if (role === "manager" || role === "admin") {
-            inquiries = await InquiryModel.find().sort({createdAt: -1}).populate<{
-                creator: IPopulatedInquiryUser
-            }>("creator");
-        } else {
-            inquiries = [];
-        }
+        inquiries = await InquiryModel.find().sort({createdAt: -1}).populate<{
+            creator: IPopulatedInquiryUser
+        }>("creator");
     } catch (err) {
         return next(new HttpError("문의 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }

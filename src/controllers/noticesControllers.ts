@@ -16,10 +16,6 @@ const newNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {title, content} = req.body;
     const {userId, role} = req.userData;
 
@@ -63,12 +59,6 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 공지 목록을 조회 할 수 없습니다.", 403));
-    }
-
     let notices;
     try {
         notices = await NoticeModel.find().sort({createdAt: -1});
@@ -95,12 +85,6 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
 const getLatestNotices = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 최신 공지를 조회 할 수 없습니다.", 403));
     }
 
     let latestNotices;
@@ -130,11 +114,6 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
     }
 
     const {noticeId} = req.params;
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
-    }
 
     if (!noticeId) {
         return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
@@ -171,17 +150,9 @@ const updateNotice = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
-    const {userId, role} = req.userData;
+    const {role} = req.userData;
     const {noticeId} = req.params;
     const {title, content} = req.body;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 공지를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("조교만 공지 수정이 가능합니다.", 403));
@@ -211,12 +182,8 @@ const deleteNotice = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId, role} = req.userData;
+    const {role} = req.userData;
     const {noticeId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 공지를 삭제 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("조교만 공지 삭제가 가능합니다.", 403));

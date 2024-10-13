@@ -18,10 +18,6 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
 
     const {userId} = req.userData;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 조회 할 수 없습니다.", 403));
-    }
-
     // id로 유저 찾기
     let existingUser;
     try {
@@ -63,10 +59,6 @@ const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction
     const {role} = req.userData;
     const {userId} = req.params;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 조회 할 수 없습니다.", 403));
-    }
-
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
@@ -102,12 +94,8 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId, role} = req.userData;
+    const {role} = req.userData;
     const {year, passQuiz, countOfWarning, username} = req.query;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 유저 목록을 조회 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -162,12 +150,6 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
 const getManager = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 조교 정보를 조회 할 수 없습니다.", 403));
     }
 
     let manager;
@@ -370,10 +352,6 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     const {username, year, studentId, studio, tel} = req.body;
     const {userId} = req.userData;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 수정 할 수 없습니다.", 403));
-    }
-
     // 유저 정보 업데이트
     let updatedUser;
     try {
@@ -409,10 +387,6 @@ const addWarning = async (req: CustomRequest, res: Response, next: NextFunction)
     const {role} = req.userData;
     const {userId} = req.params;
     const {countOfWarning, message} = req.body;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -455,10 +429,6 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
     const {userId} = req.params;
     const {countOfWarning} = req.body;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 경고 차감을 할 수 없습니다.", 403));
-    }
-
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
@@ -500,10 +470,6 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
     const {userId} = req.params;
     const {passQuiz} = req.body;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
-    }
-
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
@@ -543,10 +509,6 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
     const {role} = req.userData;
     const {userId} = req.params;
     const {passQuiz} = req.body;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));

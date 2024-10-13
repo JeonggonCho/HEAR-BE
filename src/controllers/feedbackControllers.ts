@@ -19,16 +19,8 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {title, category, content} = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 생성 할 수 없습니다.", 403));
-    }
 
     let user;
     try {
@@ -71,13 +63,7 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백 목록을 조회 할 수 없습니다.", 403));
-    }
-
+    
     let feedback: any[];
     try {
         feedback = await FeedbackModel.find().sort({createdAt: -1}).populate<{
@@ -111,16 +97,7 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId, role} = req.userData;
     const {feedbackId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
-    }
-
-    if (!role) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
-    }
 
     let feedback;
     try {
@@ -131,10 +108,6 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
 
     if (!feedback) {
         return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
-    }
-
-    if (!(["manager", "admin", "student"]).includes(role)) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
     }
 
     res.status(200).json({
@@ -160,16 +133,23 @@ const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunct
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {userId} = req.userData;
     const {feedbackId} = req.params;
     const {title, category, content} = req.body;
 
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 수정 할 수 없습니다.", 403));
+    let feedback;
+    try {
+        feedback = await FeedbackModel.findById(feedbackId);
+    } catch (err) {
+        return next(new HttpError("피드백 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!feedback) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 수정할 수 없습니다.", 404));
+    }
+
+    if (feedback.creator.toString() !== userId) {
+        return next(new HttpError("권한이 없으므로 피드백을 수정할 수 없습니다.", 403));
     }
 
     let updatedFeedback;
@@ -183,10 +163,6 @@ const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunct
         return next(new HttpError("피드백 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (!updatedFeedback) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 수정 할 수 없습니다.", 403));
-    }
-
     res.status(200).json({message: "공지가 수정되었습니다.", data: {feedback: updatedFeedback}});
 };
 
@@ -198,10 +174,6 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
 
     const {userId} = req.userData;
     const {feedbackId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 삭제 할 수 없습니다.", 403));
-    }
 
     let feedback;
     try {

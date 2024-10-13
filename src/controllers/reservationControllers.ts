@@ -24,13 +24,6 @@ const getAllReservations = async (req: CustomRequest, res: Response, next: NextF
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
-
     // 레이저 커팅기 예약 현황
     const tomorrowDate = getTomorrowDate();
 
@@ -104,12 +97,6 @@ const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
     let lasers;
     try {
         lasers = await LaserModel.find();
@@ -169,12 +156,6 @@ const getAllPrinterReservations = async (req: CustomRequest, res: Response, next
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
     let printerReservations;
     try {
         printerReservations = await PrinterReservationModel.find();
@@ -193,12 +174,6 @@ const getAllHeatReservations = async (req: CustomRequest, res: Response, next: N
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
     res.status(200).json({data: "시간"});
 };
 
@@ -207,12 +182,6 @@ const getAllHeatReservations = async (req: CustomRequest, res: Response, next: N
 const getAllSawReservations = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
     }
 
     let sawReservations;
@@ -258,12 +227,6 @@ const getAllVacuumReservations = async (req: CustomRequest, res: Response, next:
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
-    }
-
     let vacuumReservations;
     try {
         const today = new Date();
@@ -305,12 +268,6 @@ const getAllVacuumReservations = async (req: CustomRequest, res: Response, next:
 const getAllCncReservations = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 정보를 조회 할 수 없습니다.", 403));
     }
 
     let cncReservations;
@@ -359,16 +316,8 @@ const newLaserReservation = async (req: CustomRequest, res: Response, next: Next
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const laserReservationInfo = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기를 예약 할 수 없습니다.", 403));
-    }
 
     // 예약 요청 유저 찾기
     let user;
@@ -503,16 +452,8 @@ const newPrinterReservation = async (req: CustomRequest, res: Response, next: Ne
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const printerReservationInfo = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 3D 프린터를 예약 할 수 없습니다.", 403));
-    }
 
     // 예약 요청 유저 찾기
     let user;
@@ -551,16 +492,8 @@ const newHeatReservation = async (req: CustomRequest, res: Response, next: NextF
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {date} = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 열선을 예약 할 수 없습니다.", 403));
-    }
 
     // 예약 요청 유저 찾기
     let user;
@@ -615,16 +548,8 @@ const newSawReservation = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {date, startTime, endTime} = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 톱을 예약 할 수 없습니다.", 403));
-    }
 
     // 톱 조회하기
     let sawMachine;
@@ -707,16 +632,8 @@ const newVacuumReservation = async (req: CustomRequest, res: Response, next: Nex
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {date, startTime, endTime} = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 사출 성형기를 예약 할 수 없습니다.", 403));
-    }
 
     // 사출 성형기 조회하기
     let vacuumMachine;
@@ -798,16 +715,8 @@ const newCncReservation = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {date} = req.body;
     const {userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 CNC를 예약 할 수 없습니다.", 403));
-    }
 
     // CNC 조회하기
     let cncMachine;

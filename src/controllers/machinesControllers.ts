@@ -26,11 +26,7 @@ const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     const {name} = req.body;
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기를 생성 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -59,11 +55,7 @@ const newLaserTime = async (req: CustomRequest, res: Response, next: NextFunctio
     }
 
     const {id, startTime, endTime} = req.body;
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기 시간을 추가 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -98,16 +90,8 @@ const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    if (!req.body) {
-        return next(new HttpError("데이터가 없어 요청을 처리할 수 없습니다. 다시 시도 해주세요.", 401));
-    }
-
     const {name} = req.body;
-    const {userId, role} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 3d 프린터를 생성 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -130,11 +114,7 @@ const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기 상태를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin" && role !== "student") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -192,11 +172,7 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -219,11 +195,7 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 시간을 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -254,11 +226,7 @@ const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -281,11 +249,7 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -308,11 +272,7 @@ const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -335,11 +295,7 @@ const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -362,11 +318,7 @@ const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 조회 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -394,13 +346,9 @@ const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {name, status, times} = req.body;
     const {laserId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -433,11 +381,7 @@ const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFun
     }
 
     const laserTimeList = req.body;
-    const {role, userId} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 시간을 수정 할 수 없습니다.", 403));
-    }
+    const {role} = req.userData;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -481,13 +425,9 @@ const updatePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {name, status} = req.body;
     const {printerId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -519,13 +459,9 @@ const updateHeat = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {status, count} = req.body;
     const {heatId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -557,13 +493,9 @@ const updateSaw = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {status} = req.body;
     const {sawId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -595,13 +527,9 @@ const updateVacuum = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {status} = req.body;
     const {vacuumId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -633,13 +561,9 @@ const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {cncId} = req.params;
     const {status} = req.body;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 수정 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -671,12 +595,8 @@ const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {laserId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 삭제 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -703,12 +623,8 @@ const deleteLaserTime = async (req: CustomRequest, res: Response, next: NextFunc
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {laserTimeId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 시간을 삭제 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -741,12 +657,8 @@ const deletePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {role, userId} = req.userData;
+    const {role} = req.userData;
     const {printerId} = req.params;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 기기를 삭제 할 수 없습니다.", 403));
-    }
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));

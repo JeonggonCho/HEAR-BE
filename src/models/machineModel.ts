@@ -6,30 +6,30 @@ interface ILaserTime {
     endTime: string;
 }
 
-interface ILaser extends Document {
+export interface ILaser extends Document {
     name: string;
     status: boolean;
 }
 
-interface IPrinter extends Document {
+export interface IPrinter extends Document {
     name: string;
     status: boolean;
 }
 
-interface IHeat extends Document {
+export interface IHeat extends Document {
     count: number;
     status: boolean;
 }
 
-interface ISaw extends Document {
+export interface ISaw extends Document {
     status: boolean;
 }
 
-interface IVacuum extends Document {
+export interface IVacuum extends Document {
     status: boolean;
 }
 
-interface ICnc extends Document {
+export interface ICnc extends Document {
     status: boolean;
 }
 

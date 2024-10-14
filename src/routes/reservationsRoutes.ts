@@ -1,12 +1,14 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
 import {
+    deleteReservations,
     getAllCncReservations,
     getAllHeatReservations,
     getAllPrinterReservations,
     getAllReservations,
     getAllSawReservations,
     getAllVacuumReservations,
+    getMyReservations,
     getValidLaserInfo,
     newCncReservation,
     newHeatReservation,
@@ -31,9 +33,9 @@ router.get("/vacuums", checkAuth, getAllVacuumReservations);
 router.get("/cncs", checkAuth, getAllCncReservations);
 
 // 나의 예약 내역 조회하기
+router.get("/me", checkAuth, getMyReservations);
 
-
-// 나의 과거 사용 조회하기
+// 나의 과거 이용 내역 조회하기
 
 
 // 예약하기
@@ -45,5 +47,6 @@ router.post("/vacuums", checkAuth, sawVacuumValidator, newVacuumReservation);
 router.post("/cncs", checkAuth, cncValidator, newCncReservation);
 
 // 예약 취소하기
+router.delete("/", checkAuth, deleteReservations);
 
 export default router;

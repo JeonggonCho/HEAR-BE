@@ -123,112 +123,128 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
 
     // 레이저 커팅기 예약 내역
     let laserReservations;
-    try {
-        laserReservations = await LaserReservationModel.find({
-            userId: userId,
-            date: {$gte: new Date()}
-        }).populate<{ machineId: ILaser }>("machineId");
+    if (filter === "all" || filter === "laser") {
+        try {
+            laserReservations = await LaserReservationModel.find({
+                userId: userId,
+                date: {$gte: new Date()}
+            }).populate<{ machineId: ILaser }>("machineId");
 
-        laserReservations.forEach(l => {
-            l.machineId.status && filteredReservations.push({
-                machine: l.machine as "laser",
-                _id: (l._id).toString(),
-                date: l.date,
-                machineName: l.machineId.name,
-                startTime: l.startTime,
-                endTime: l.endTime,
+            laserReservations.forEach(l => {
+                l.machineId.status && filteredReservations.push({
+                    machine: l.machine as "laser",
+                    _id: (l._id).toString(),
+                    date: l.date,
+                    machineName: l.machineId.name,
+                    startTime: l.startTime,
+                    endTime: l.endTime,
+                });
             });
-        });
-    } catch (err) {
-        return next(new HttpError("내 레이저 커팅기 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 레이저 커팅기 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
 
     // 3d 프린터 예약 내역
     let printerReservations;
-    try {
+    if (filter === "all" || filter === "printer") {
+        try {
 
-    } catch (err) {
-        return next(new HttpError("내 3d 프린터 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 3d 프린터 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
+
 
     // 열선 예약 내역
     let heatReservations;
-    try {
-        heatReservations = await HeatReservationModel.find({
-            userId: userId,
-            date: {$gte: new Date()}
-        }).populate<{ machineId: IHeat }>("machineId");
+    if (filter === "all" || filter === "heat") {
+        try {
+            heatReservations = await HeatReservationModel.find({
+                userId: userId,
+                date: {$gte: new Date()}
+            }).populate<{ machineId: IHeat }>("machineId");
 
-        heatReservations.forEach(h => {
-            h.machineId.status && filteredReservations.push({
-                machine: h.machine as "heat",
-                _id: (h._id).toString(),
-                date: h.date,
+            heatReservations.forEach(h => {
+                h.machineId.status && filteredReservations.push({
+                    machine: h.machine as "heat",
+                    _id: (h._id).toString(),
+                    date: h.date,
+                });
             });
-        });
-    } catch (err) {
-        return next(new HttpError("내 열선 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 열선 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
+
 
     // 톱 예약 내역
     let sawReservations;
-    try {
-        sawReservations = await SawReservationModel.find({
-            userId: userId,
-            date: {$gte: new Date()}
-        }).populate<{ machineId: ISaw }>("machineId");
+    if (filter === "all" || filter === "saw") {
+        try {
+            sawReservations = await SawReservationModel.find({
+                userId: userId,
+                date: {$gte: new Date()}
+            }).populate<{ machineId: ISaw }>("machineId");
 
-        sawReservations.forEach(s => {
-            s.machineId.status && filteredReservations.push({
-                machine: s.machine as "saw",
-                _id: (s._id).toString(),
-                date: s.date,
-                startTime: s.startTime,
-                endTime: s.endTime,
+            sawReservations.forEach(s => {
+                s.machineId.status && filteredReservations.push({
+                    machine: s.machine as "saw",
+                    _id: (s._id).toString(),
+                    date: s.date,
+                    startTime: s.startTime,
+                    endTime: s.endTime,
+                });
             });
-        });
-    } catch (err) {
-        return next(new HttpError("내 톱 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 톱 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
+
 
     // 사출 성형기 예약 내역
     let vacuumReservations;
-    try {
-        vacuumReservations = await VacuumReservationModel.find({
-            userId: userId,
-            date: {$gte: new Date()}
-        }).populate<{ machineId: IVacuum }>("machineId");
+    if (filter === "all" || filter === "vacuum") {
+        try {
+            vacuumReservations = await VacuumReservationModel.find({
+                userId: userId,
+                date: {$gte: new Date()}
+            }).populate<{ machineId: IVacuum }>("machineId");
 
-        vacuumReservations.forEach(v => {
-            v.machineId.status && filteredReservations.push({
-                machine: v.machine as "vacuum",
-                _id: (v._id).toString(),
-                date: v.date,
-                startTime: v.startTime,
-                endTime: v.endTime,
+            vacuumReservations.forEach(v => {
+                v.machineId.status && filteredReservations.push({
+                    machine: v.machine as "vacuum",
+                    _id: (v._id).toString(),
+                    date: v.date,
+                    startTime: v.startTime,
+                    endTime: v.endTime,
+                });
             });
-        });
-    } catch (err) {
-        return next(new HttpError("내 사출 성형기 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 사출 성형기 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
+
 
     // cnc 예약 내역
     let cncReservations;
-    try {
-        cncReservations = await CncReservationModel.find({
-            userId: userId,
-            date: {$gte: new Date()}
-        }).populate<{ machineId: ICnc }>("machineId");
+    if (filter === "all" || filter === "cnc") {
+        try {
+            cncReservations = await CncReservationModel.find({
+                userId: userId,
+                date: {$gte: new Date()}
+            }).populate<{ machineId: ICnc }>("machineId");
 
-        cncReservations.forEach(c => {
-            c.machineId.status && filteredReservations.push({
-                machine: c.machine as "cnc",
-                _id: (c._id).toString(),
-                date: c.date,
+            cncReservations.forEach(c => {
+                c.machineId.status && filteredReservations.push({
+                    machine: c.machine as "cnc",
+                    _id: (c._id).toString(),
+                    date: c.date,
+                });
             });
-        });
-    } catch (err) {
-        return next(new HttpError("내 cnc 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        } catch (err) {
+            return next(new HttpError("내 cnc 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
     }
 
     // 날짜 순으로 정렬하기
@@ -1082,7 +1098,7 @@ const deleteReservations = async (req: CustomRequest, res: Response, next: NextF
         await session.abortTransaction();
         return next(new HttpError("예약 취소 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     } finally {
-        session.endSession();
+        await session.endSession();
     }
 };
 

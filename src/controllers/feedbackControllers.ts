@@ -3,7 +3,7 @@ import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
 import HttpError from "../models/errorModel";
-import UserModel from "../models/userModel";
+import {UserModel} from "../models/userModel";
 import FeedbackModel, {IPopulatedFeedbackUser} from "../models/feedbackModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
@@ -55,7 +55,7 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         await sess.endSession();
     }
 
-    res.status(201).json({data: {feedbackId: createdFeedback._id}});
+    return res.status(201).json({data: {feedbackId: createdFeedback._id}});
 };
 
 // 피드백 목록 조회
@@ -63,7 +63,7 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
-    
+
     let feedback: any[];
     try {
         feedback = await FeedbackModel.find().sort({createdAt: -1}).populate<{
@@ -110,7 +110,7 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             title: feedback.title,
             category: feedback.category,
@@ -163,7 +163,7 @@ const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunct
         return next(new HttpError("피드백 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({message: "공지가 수정되었습니다.", data: {feedback: updatedFeedback}});
+    return res.status(200).json({message: "공지가 수정되었습니다.", data: {feedback: updatedFeedback}});
 };
 
 // 피드백 삭제
@@ -208,7 +208,7 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
         await sess.endSession();
     }
 
-    res.status(204).json({message: "피드백이 삭제되었습니다."});
+    return res.status(204).json({message: "피드백이 삭제되었습니다."});
 };
 
 export {newFeedback, getFeedbackList, getFeedback, updateFeedback, deleteFeedback};

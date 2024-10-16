@@ -3,7 +3,7 @@ import {validationResult} from "express-validator";
 import bcrypt from "bcryptjs";
 import mongoose, {Types} from "mongoose";
 
-import UserModel from "../models/userModel";
+import {UserModel, WarningModel} from "../models/userModel";
 import HttpError from "../models/errorModel";
 
 import jwt from "../utils/jwtUtil";
@@ -31,7 +31,7 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             userId: existingUser._id,
             username: existingUser.username,
@@ -74,7 +74,7 @@ const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             username: existingUser.username,
             email: existingUser.email,
@@ -130,9 +130,9 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     if (users.length === 0) {
-        res.status(200).json({data: []});
+        return res.status(200).json({data: []});
     } else {
-        res.status(200).json({
+        return res.status(200).json({
             data:
                 users.map((user) => ({
                     userId: user._id,
@@ -145,6 +145,38 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
         });
     }
 };
+
+
+// 경고 목록 조회하기
+const getWarnings = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    let warnings;
+    try {
+        warnings = await WarningModel.find({userId: userId}).sort({createdAt: -1});
+    } catch (err) {
+        return next(new HttpError("경고 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (warnings.length === 0) {
+        return res.status(200).json({data: []});
+    }
+
+    const responseData = warnings.map((warning) => {
+        return ({
+            _id: warning._id,
+            message: warning.message,
+            date: warning.createdAt,
+        })
+    });
+
+    return res.status(200).json({data: responseData});
+};
+
 
 // 조교 정보 조회하기
 const getManager = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -163,7 +195,7 @@ const getManager = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("조교 정보를 조회 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({data: {username: manager[0].username, lab: manager[0].lab}});
+    return res.status(200).json({data: {username: manager[0].username, lab: manager[0].lab}});
 };
 
 // 회원가입
@@ -241,7 +273,7 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
             studentId: createdUser.studentId,
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             data: {
                 userId: createdUser._id,
                 email: createdUser.email,
@@ -314,7 +346,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         const [refreshToken] = await jwt.refresh(existingUser._id as mongoose.Types.ObjectId);
 
         // 결과 반환
-        res.status(200).json({
+        return res.status(200).json({
             data: {
                 userId: existingUser._id,
                 email: existingUser.email,
@@ -370,7 +402,7 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     }
 
     // 성공 응답
-    res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
+    return res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
 };
 
 // 경고 부과하기
@@ -392,25 +424,36 @@ const addWarning = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
-    let user;
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
     try {
-        user = await UserModel.findById(userId);
+        const user = await UserModel.findById(userId).session(sess);
+        if (!user) {
+            return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
+        }
+        if (user.countOfWarning !== countOfWarning) {
+            return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
+        }
+        if (typeof user.countOfWarning === "number") {
+            user.countOfWarning++;
+        }
+
+        const warning = new WarningModel({
+            userId: userId,
+            message: message,
+        });
+
+        await warning.save({session: sess});
+        await user.save({session: sess});
+        await sess.commitTransaction();
+
+        return res.status(200).json({data: {countOfWarning: user.countOfWarning}});
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("경고 부과 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
-    }
-
-    if (!user) {
-        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
-    }
-
-    if (user.countOfWarning !== countOfWarning) {
-        return next(new HttpError("유효하지 않은 데이터이므로 경고 부과를 할 수 없습니다.", 403));
-    }
-
-    if (typeof user.countOfWarning === "number") {
-        user.countOfWarning++;
-        await user.save();
-        res.status(200).json({data: {countOfWarning: user.countOfWarning}});
+    } finally {
+        await sess.endSession();
     }
 };
 
@@ -451,7 +494,7 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
     if (typeof user.countOfWarning === "number") {
         user.countOfWarning--;
         await user.save();
-        res.status(200).json({data: {countOfWarning: user.countOfWarning}});
+        return res.status(200).json({data: {countOfWarning: user.countOfWarning}});
     }
 };
 
@@ -492,7 +535,7 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
     user.passQuiz = true;
     await user.save();
 
-    res.status(200).json({data: {passQuiz: user.passQuiz}});
+    return res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
 
 // 교육 미이수 처리하기
@@ -532,7 +575,7 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
     user.passQuiz = false;
     await user.save();
 
-    res.status(200).json({data: {passQuiz: user.passQuiz}});
+    return res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
 
 // 유저 탈퇴하기
@@ -544,6 +587,7 @@ export {
     getUser,
     getUserInfo,
     getUsers,
+    getWarnings,
     getManager,
     signup,
     login,

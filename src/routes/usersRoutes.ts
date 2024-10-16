@@ -6,6 +6,7 @@ import {
     getUser,
     getUserInfo,
     getUsers,
+    getWarnings,
     login,
     minusWarning,
     passQuiz,
@@ -31,6 +32,7 @@ router.post("/login", loginValidator, login);
 router.get("/", checkAuth, getUser);
 router.get("/all", checkAuth, getUsers);
 router.get("/manager", checkAuth, getManager);
+router.get("/warnings", checkAuth, getWarnings);
 router.get("/:userId", checkAuth, getUserInfo);
 
 router.patch("/", checkAuth, updateAccountValidator, updateUser);

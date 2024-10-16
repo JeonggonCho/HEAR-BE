@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import {validationResult} from "express-validator";
 
 import {CustomRequest} from "../middlewares/checkAuth";
+import {FilteredReservation, ILaserStatus} from "../types/reservationTypes";
 
 import HttpError from "../models/errorModel";
 import {
@@ -13,7 +14,7 @@ import {
     SawReservationModel,
     VacuumReservationModel
 } from "../models/reservationModel";
-import UserModel, {IUser} from "../models/userModel";
+import {IUser, UserModel} from "../models/userModel";
 import {
     CncModel,
     ICnc,
@@ -28,7 +29,6 @@ import {
 } from "../models/machineModel";
 
 import {getTomorrowDate, isHoliday} from "../utils/calculateDate";
-import {ILaserStatus} from "../types/reservationTypes";
 
 // 모든 예약 현황 요청
 const getAllReservations = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -97,7 +97,7 @@ const getAllReservations = async (req: CustomRequest, res: Response, next: NextF
     let cncStatus: any[] = [];
 
 
-    res.status(200).json({data: {laserStatus, printerStatus, heatStatus, sawStatus, vacuumStatus, cncStatus}});
+    return res.status(200).json({data: {laserStatus, printerStatus, heatStatus, sawStatus, vacuumStatus, cncStatus}});
 };
 
 
@@ -110,14 +110,6 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
     const {userId} = req.userData;
     const {filter} = req.query;
 
-    type FilteredReservation = {
-        machine: "laser" | "printer" | "heat" | "saw" | "vacuum" | "cnc",
-        _id: string,
-        date: Date,
-        machineName?: string,
-        startTime?: string,
-        endTime?: string
-    }
 
     let filteredReservations: FilteredReservation[] = [];
 
@@ -127,7 +119,7 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
         try {
             laserReservations = await LaserReservationModel.find({
                 userId: userId,
-                date: {$gte: new Date()}
+                date: {$gte: new Date().toLocaleDateString()}
             }).populate<{ machineId: ILaser }>("machineId");
 
             laserReservations.forEach(l => {
@@ -162,7 +154,7 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
         try {
             heatReservations = await HeatReservationModel.find({
                 userId: userId,
-                date: {$gte: new Date()}
+                date: {$gte: new Date().toLocaleDateString()}
             }).populate<{ machineId: IHeat }>("machineId");
 
             heatReservations.forEach(h => {
@@ -184,7 +176,7 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
         try {
             sawReservations = await SawReservationModel.find({
                 userId: userId,
-                date: {$gte: new Date()}
+                date: {$gte: new Date().toLocaleDateString()}
             }).populate<{ machineId: ISaw }>("machineId");
 
             sawReservations.forEach(s => {
@@ -208,7 +200,7 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
         try {
             vacuumReservations = await VacuumReservationModel.find({
                 userId: userId,
-                date: {$gte: new Date()}
+                date: {$gte: new Date().toLocaleDateString()}
             }).populate<{ machineId: IVacuum }>("machineId");
 
             vacuumReservations.forEach(v => {
@@ -232,7 +224,7 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
         try {
             cncReservations = await CncReservationModel.find({
                 userId: userId,
-                date: {$gte: new Date()}
+                date: {$gte: new Date().toLocaleDateString()}
             }).populate<{ machineId: ICnc }>("machineId");
 
             cncReservations.forEach(c => {
@@ -250,7 +242,72 @@ const getMyReservations = async (req: CustomRequest, res: Response, next: NextFu
     // 날짜 순으로 정렬하기
     filteredReservations.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    res.status(200).json({data: filteredReservations});
+    return res.status(200).json({data: filteredReservations});
+};
+
+
+// 내 이용 내역 조회
+const getMyHistory = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+    const {filter} = req.query;
+
+    let filteredReservations: FilteredReservation[] = [];
+
+    let laserReservations;
+    if (filter === "all" || filter === "laser") {
+        try {
+            laserReservations = await LaserReservationModel.find({
+                userId: userId,
+                date: {$lt: new Date().toLocaleDateString()}
+            }).populate<{ machineId: ILaser }>("machineId");
+
+            laserReservations.forEach(l => {
+                filteredReservations.push({
+                    machine: l.machine as "laser",
+                    _id: (l._id).toString(),
+                    date: l.date,
+                    machineName: l.machineId.name,
+                    startTime: l.startTime,
+                    endTime: l.endTime,
+                });
+            });
+        } catch (err) {
+            return next(new HttpError("내 레이저 커팅기 예약 내역 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        }
+    }
+
+    let printerReservations;
+    if (filter === "all" || filter === "printer") {
+
+    }
+
+    let heatReservations;
+    if (filter === "all" || filter === "heat") {
+
+    }
+
+    let sawReservations;
+    if (filter === "all" || filter === "saw") {
+
+    }
+
+    let vacuumReservations;
+    if (filter === "all" || filter === "vacuum") {
+
+    }
+
+    let cncReservations;
+    if (filter === "all" || filter === "cnc") {
+
+    }
+
+    filteredReservations.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    return res.status(200).json({data: filteredReservations});
 };
 
 
@@ -309,7 +366,7 @@ const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFu
         }),
     ).flat();
 
-    res.status(200).json({data: {laserInfo, laserTimesInfo}});
+    return res.status(200).json({data: {laserInfo, laserTimesInfo}});
 };
 
 
@@ -327,7 +384,7 @@ const getAllPrinterReservations = async (req: CustomRequest, res: Response, next
     }
 
 
-    res.status(200).json({data: "시간"});
+    return res.status(200).json({data: "시간"});
 };
 
 
@@ -337,7 +394,7 @@ const getAllHeatReservations = async (req: CustomRequest, res: Response, next: N
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    res.status(200).json({data: "시간"});
+    return res.status(200).json({data: "시간"});
 };
 
 
@@ -380,7 +437,7 @@ const getAllSawReservations = async (req: CustomRequest, res: Response, next: Ne
         });
     });
 
-    res.status(200).json({data: sawReservationCondition});
+    return res.status(200).json({data: sawReservationCondition});
 };
 
 
@@ -423,7 +480,7 @@ const getAllVacuumReservations = async (req: CustomRequest, res: Response, next:
         });
     });
 
-    res.status(200).json({data: vacuumReservationCondition});
+    return res.status(200).json({data: vacuumReservationCondition});
 };
 
 
@@ -464,7 +521,7 @@ const getAllCncReservations = async (req: CustomRequest, res: Response, next: Ne
         });
     });
 
-    res.status(200).json({data: cncReservationCondition});
+    return res.status(200).json({data: cncReservationCondition});
 };
 
 
@@ -600,7 +657,7 @@ const newLaserReservation = async (req: CustomRequest, res: Response, next: Next
         await sess.endSession();
     }
 
-    res.status(201).json({data: {message: "레이저 커팅기 예약 성공"}});
+    return res.status(201).json({data: {message: "레이저 커팅기 예약 성공"}});
 };
 
 
@@ -781,7 +838,7 @@ const newSawReservation = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("톱 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(201).json({data: {message: "톱 예약 성공"}});
+    return res.status(201).json({data: {message: "톱 예약 성공"}});
 };
 
 
@@ -865,7 +922,7 @@ const newVacuumReservation = async (req: CustomRequest, res: Response, next: Nex
         return next(new HttpError("사출 성형기 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(201).json({data: {message: "사출 성형기 예약 성공"}});
+    return res.status(201).json({data: {message: "사출 성형기 예약 성공"}});
 };
 
 
@@ -979,7 +1036,7 @@ const newCncReservation = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("CNC 예약 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(201).json({data: {message: "CNC 예약 성공"}});
+    return res.status(201).json({data: {message: "CNC 예약 성공"}});
 };
 
 
@@ -1093,7 +1150,7 @@ const deleteReservations = async (req: CustomRequest, res: Response, next: NextF
             }
         }
         await session.commitTransaction();
-        res.status(200).json({data: deletedReservations});
+        return res.status(200).json({data: deletedReservations});
     } catch (err) {
         await session.abortTransaction();
         return next(new HttpError("예약 취소 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
@@ -1106,6 +1163,7 @@ const deleteReservations = async (req: CustomRequest, res: Response, next: NextF
 export {
     getAllReservations,
     getMyReservations,
+    getMyHistory,
     getValidLaserInfo,
     getAllPrinterReservations,
     getAllHeatReservations,

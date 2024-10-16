@@ -36,7 +36,7 @@ const newLaser = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     try {
         createdLaser.save();
-        res.status(201).json({data: {laser: createdLaser}});
+        return res.status(201).json({data: {laser: createdLaser}});
     } catch (err) {
         return next(new HttpError("레이저 커팅기 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -64,7 +64,7 @@ const newLaserTime = async (req: CustomRequest, res: Response, next: NextFunctio
     const createdLaserTime = new LaserTimeModel({id, startTime, endTime});
     try {
         createdLaserTime.save();
-        res.status(201).json({
+        return res.status(201).json({
             data: {
                 laserTime: {
                     id: createdLaserTime.id,
@@ -101,7 +101,7 @@ const newPrinter = async (req: CustomRequest, res: Response, next: NextFunction)
 
     try {
         createdPrinter.save();
-        res.status(201).json({data: {printer: createdPrinter}});
+        return res.status(201).json({data: {printer: createdPrinter}});
     } catch (err) {
         return next(new HttpError("3d 프린터 생성 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -153,7 +153,7 @@ const getStatus = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             laser: laserStatus,
             printer: printerStatus,
@@ -185,7 +185,7 @@ const getLasers = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {lasers}});
+    return res.status(200).json({data: {lasers}});
 };
 
 
@@ -208,7 +208,7 @@ const getLaserTimes = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("레이저 커팅기 시간 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             laserTimes: laserTimes.map(({id, startTime, endTime}) => ({
                 id,
@@ -239,7 +239,7 @@ const getPrinters = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {printers}});
+    return res.status(200).json({data: {printers}});
 };
 
 
@@ -262,7 +262,7 @@ const getHeats = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {heats}});
+    return res.status(200).json({data: {heats}});
 };
 
 
@@ -285,7 +285,7 @@ const getSaws = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {saws}});
+    return res.status(200).json({data: {saws}});
 };
 
 
@@ -308,7 +308,7 @@ const getVacuums = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {vacuums}});
+    return res.status(200).json({data: {vacuums}});
 };
 
 
@@ -331,7 +331,7 @@ const getCncs = async (req: CustomRequest, res: Response, next: NextFunction) =>
         return next(new HttpError("기기 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(200).json({data: {cncs}});
+    return res.status(200).json({data: {cncs}});
 };
 
 
@@ -365,7 +365,7 @@ const updateLaser = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("유효하지 않은 데이터이므로 레이저 커팅기 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "레이저 커팅기 수정완료"});
+    return res.status(200).json({message: "레이저 커팅기 수정완료"});
 };
 
 
@@ -410,7 +410,7 @@ const updateLaserTimes = async (req: CustomRequest, res: Response, next: NextFun
         await sess.endSession();
     }
 
-    res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
+    return res.status(200).json({message: "레이저 커팅기 시간 목록을 성공적으로 업데이트했습니다."});
 };
 
 
@@ -444,7 +444,7 @@ const updatePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("유효하지 않은 데이터이므로 3d 프린터 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "3d 프린터 수정완료"});
+    return res.status(200).json({message: "3d 프린터 수정완료"});
 };
 
 
@@ -478,7 +478,7 @@ const updateHeat = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("유효하지 않은 데이터이므로 열선 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "열선 수정완료"});
+    return res.status(200).json({message: "열선 수정완료"});
 };
 
 
@@ -512,7 +512,7 @@ const updateSaw = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("유효하지 않은 데이터이므로 톱 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "톱 수정완료"});
+    return res.status(200).json({message: "톱 수정완료"});
 };
 
 
@@ -546,7 +546,7 @@ const updateVacuum = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("유효하지 않은 데이터이므로 사출 성형기 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "사출 성형기 수정완료"});
+    return res.status(200).json({message: "사출 성형기 수정완료"});
 };
 
 
@@ -580,7 +580,7 @@ const updateCnc = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("유효하지 않은 데이터이므로 cnc 정보를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "cnc 수정완료"});
+    return res.status(200).json({message: "cnc 수정완료"});
 };
 
 
@@ -608,7 +608,7 @@ const deleteLaser = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("레이저 커팅기 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
+    return res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
 };
 
 
@@ -641,7 +641,7 @@ const deleteLaserTime = async (req: CustomRequest, res: Response, next: NextFunc
         return next(new HttpError("유효하지 않은 데이터이므로 시간을 삭제 할 수 없습니다.", 403));
     } else {
         await laserTime.deleteOne();
-        res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
+        return res.status(204).json({message: "레이저 커팅기가 삭제되었습니다."});
     }
 };
 
@@ -670,7 +670,7 @@ const deletePrinter = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("3d 프린터 기기 삭제 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(204).json({data: {message: "3d 프린터가 삭제되었습니다."}});
+    return res.status(204).json({data: {message: "3d 프린터가 삭제되었습니다."}});
 };
 
 export {

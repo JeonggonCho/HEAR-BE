@@ -22,6 +22,12 @@ export interface IUser extends Document {
     updatedAt?: Date; // 마지막 수정일
 }
 
+export interface IWarning {
+    userId: mongoose.Types.ObjectId;
+    message: string;
+    createdAt?: Date;
+}
+
 const userSchema = new mongoose.Schema<IUser>({
     username: {
         type: String,
@@ -130,10 +136,23 @@ userSchema.pre<IUser>('save', function (next) {
         // Student에게 필요하지 않은 필드 삭제
         delete user.lab;
     }
-    
+
     next();
 });
 
-const UserModel = mongoose.model<IUser>("User", userSchema);
+const warningSchema = new mongoose.Schema<IWarning>({
+    userId: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "User",
+    },
+    message: {
+        type: String,
+        required: true,
+    },
+}, {timestamps: true});
 
-export default UserModel;
+const UserModel = mongoose.model<IUser>("User", userSchema);
+const WarningModel = mongoose.model<IWarning>("Warning", warningSchema);
+
+export {UserModel, WarningModel};

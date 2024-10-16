@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 
 import RefreshTokenModel from "../models/refreshTokenModel";
-import UserModel from "../models/userModel";
+import {UserModel} from "../models/userModel";
 import HttpError from "../models/errorModel";
 
 dotenv.config();

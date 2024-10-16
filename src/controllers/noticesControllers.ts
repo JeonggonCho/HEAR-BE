@@ -2,7 +2,7 @@ import {NextFunction, Response} from "express";
 import {CustomRequest} from "../middlewares/checkAuth";
 import {validationResult} from "express-validator";
 import HttpError from "../models/errorModel";
-import UserModel from "../models/userModel";
+import {UserModel} from "../models/userModel";
 import NoticeModel from "../models/noticeModel";
 
 // 공지 등록
@@ -50,7 +50,7 @@ const newNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("공지 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(201).json({data: {noticeId: createdNotice._id}});
+    return res.status(201).json({data: {noticeId: createdNotice._id}});
 };
 
 // 공지 목록 조회
@@ -104,7 +104,7 @@ const getLatestNotices = async (req: CustomRequest, res: Response, next: NextFun
         })
     );
 
-    res.status(200).json({data: filteredLatestNotices});
+    return res.status(200).json({data: filteredLatestNotices});
 };
 
 // 공지 디테일 조회
@@ -130,7 +130,7 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({
+    return res.status(200).json({
         data: {
             title: notice.title,
             content: notice.content,
@@ -173,7 +173,7 @@ const updateNotice = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("유효하지 않은 데이터이므로 공지를 수정 할 수 없습니다.", 403));
     }
 
-    res.status(200).json({message: "공지가 수정되었습니다.", data: {notice: updatedNotice}});
+    return res.status(200).json({message: "공지가 수정되었습니다.", data: {notice: updatedNotice}});
 };
 
 // 공지 삭제
@@ -195,7 +195,7 @@ const deleteNotice = async (req: CustomRequest, res: Response, next: NextFunctio
         return next(new HttpError("공지 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    res.status(204).json({message: "공지가 삭제되었습니다."});
+    return res.status(204).json({message: "공지가 삭제되었습니다."});
 };
 
 export {newNotice, getNotices, getLatestNotices, getNotice, updateNotice, deleteNotice};

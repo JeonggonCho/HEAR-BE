@@ -8,6 +8,7 @@ import {
     getAllReservations,
     getAllSawReservations,
     getAllVacuumReservations,
+    getMyHistory,
     getMyReservations,
     getValidLaserInfo,
     newCncReservation,
@@ -35,8 +36,8 @@ router.get("/cncs", checkAuth, getAllCncReservations);
 // 나의 예약 내역 조회하기
 router.get("/me", checkAuth, getMyReservations);
 
-// 나의 과거 이용 내역 조회하기
-
+// 나의 이용 내역 조회하기
+router.get("/history", checkAuth, getMyHistory);
 
 // 예약하기
 router.post("/lasers", checkAuth, laserValidator, newLaserReservation);

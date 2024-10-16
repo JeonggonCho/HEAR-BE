@@ -2,7 +2,7 @@ import {NextFunction, Response} from "express";
 import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
-import UserModel from "../models/userModel";
+import {UserModel} from "../models/userModel";
 import InquiryModel, {IPopulatedInquiryUser} from "../models/inquiryModel";
 import HttpError from "../models/errorModel";
 
@@ -68,7 +68,7 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         await sess.endSession();
     }
 
-    res.status(201).json({data: {inquiryId: createdInquiry._id}});
+    return res.status(201).json({data: {inquiryId: createdInquiry._id}});
 };
 
 // 문의 목록 조회
@@ -156,7 +156,7 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
             return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             data: {
                 title: inquiry.title,
                 category: inquiry.category,
@@ -204,7 +204,7 @@ const updateInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
 
         const updatedInquiry = await inquiry.save();
 
-        res.status(200).json({message: "문의가 수정되었습니다.", data: {inquiry: updatedInquiry}});
+        return res.status(200).json({message: "문의가 수정되었습니다.", data: {inquiry: updatedInquiry}});
     } catch (err) {
         return next(new HttpError("문의 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -256,7 +256,7 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         await sess.endSession();
     }
 
-    res.status(204).json({message: "문의가 삭제되었습니다."});
+    return res.status(204).json({message: "문의가 삭제되었습니다."});
 };
 
 export {newInquiry, getInquiry, getMyInquiries, getInquiries, updateInquiry, deleteInquiry};

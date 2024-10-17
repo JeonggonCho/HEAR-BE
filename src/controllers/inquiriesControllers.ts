@@ -98,6 +98,8 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
             answer: !!i.comment,
             creator: i.creator.username,
             createdAt: i.createdAt,
+            views: i.views,
+            likes: i.likes,
         };
     });
 
@@ -134,6 +136,8 @@ const getMyInquiries = async (req: CustomRequest, res: Response, next: NextFunct
             answer: !!i.comment,
             creator: i.creator.username,
             createdAt: i.createdAt,
+            views: i.views,
+            likes: i.likes,
         };
     });
 
@@ -147,28 +151,38 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {userId} = req.userData;
     const {inquiryId} = req.params;
 
+    let inquiry;
     try {
-        const inquiry = await InquiryModel.findById(inquiryId).populate<{ creator: IPopulatedInquiryUser }>("creator");
-
-        if (!inquiry) {
-            return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
-        }
-
-        return res.status(200).json({
-            data: {
-                title: inquiry.title,
-                category: inquiry.category,
-                content: inquiry.content,
-                creator: inquiry.creator.username,
-                creatorId: inquiry.creator._id.toString(),
-                createdAt: inquiry.createdAt,
-            },
-        });
+        inquiry = await InquiryModel.findById(inquiryId).populate<{ creator: IPopulatedInquiryUser }>("creator");
     } catch (err) {
         return next(new HttpError("문의 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
+
+    if (!inquiry) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의를 조회 할 수 없습니다.", 403));
+    }
+
+    if (!inquiry.viewedBy.includes(userId)) {
+        inquiry.views += 1;
+        inquiry.viewedBy.push(userId);
+        await inquiry.save();
+    }
+
+    return res.status(200).json({
+        data: {
+            title: inquiry.title,
+            category: inquiry.category,
+            content: inquiry.content,
+            creator: inquiry.creator.username,
+            creatorId: inquiry.creator._id.toString(),
+            createdAt: inquiry.createdAt,
+            views: inquiry.views,
+            likes: inquiry.likes,
+        },
+    });
 };
 
 // 문의 수정
@@ -209,6 +223,48 @@ const updateInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("문의 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 };
+
+
+// 문의 좋아요
+const likeInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+    const {inquiryId} = req.params;
+
+    let inquiry;
+    try {
+        inquiry = await InquiryModel.findById(inquiryId);
+    } catch (err) {
+        return next(new HttpError("문의 좋아요 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!inquiry) {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의 좋아요를 할 수 없습니다.", 403));
+    }
+
+    // 좋아요 추가 또는 취소 처리
+    let message;
+    if (!inquiry.likedBy.includes(userId)) {
+        inquiry.likes += 1;
+        inquiry.likedBy.push(userId);
+        message = "문의에 좋아요를 추가하였습니다.";
+    } else {
+        inquiry.likes = Math.max(inquiry.likes - 1, 0); // likes가 0 미만으로 내려가지 않도록 설정
+        inquiry.likedBy = inquiry.likedBy.filter((id: mongoose.Types.ObjectId) => id !== userId);
+        message = "문의에 대한 좋아요를 취소하였습니다.";
+    }
+
+    try {
+        await inquiry.save();
+    } catch (err) {
+        return next(new HttpError("문의 좋아요 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+    return res.status(200).json({data: {message, likes: inquiry.likes}});
+};
+
 
 // 문의 삭제
 const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -259,4 +315,4 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     return res.status(204).json({message: "문의가 삭제되었습니다."});
 };
 
-export {newInquiry, getInquiry, getMyInquiries, getInquiries, updateInquiry, deleteInquiry};
+export {newInquiry, getInquiry, getMyInquiries, getInquiries, likeInquiry, updateInquiry, deleteInquiry};

@@ -58,6 +58,7 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
     return res.status(201).json({data: {feedbackId: createdFeedback._id}});
 };
 
+
 // 피드백 목록 조회
 const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -85,11 +86,14 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
             answer: !!f.comment,
             creator: f.creator.username,
             createdAt: f.createdAt,
+            views: f.views,
+            likes: f.likes,
         };
     });
 
     return res.status(200).json({data});
 };
+
 
 // 피드백 디테일 조회
 const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -97,6 +101,7 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {userId} = req.userData;
     const {feedbackId} = req.params;
 
     let feedback;
@@ -110,6 +115,12 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
     }
 
+    if (!feedback.viewedBy.includes(userId)) {
+        feedback.views += 1;
+        feedback.viewedBy.push(userId);
+        await feedback.save();
+    }
+
     return res.status(200).json({
         data: {
             title: feedback.title,
@@ -118,9 +129,52 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
             creator: feedback.creator.username,
             creatorId: feedback.creator._id.toString(),
             createdAt: feedback.createdAt,
+            views: feedback.views,
+            likes: feedback.likes,
         },
     });
 };
+
+
+// 피드백 좋아요
+const likeFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+    const {feedbackId} = req.params;
+
+    let feedback;
+    try {
+        feedback = await FeedbackModel.findById(feedbackId);
+    } catch (err) {
+        return next(new HttpError("피드백 좋아요 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!feedback) {
+        return next(new HttpError("유효하지 않은 데이터이므로 피드백 좋아요를 할 수 없습니다.", 403));
+    }
+
+    let message;
+    if (!feedback.likedBy.includes(userId)) {
+        feedback.likes += 1;
+        feedback.likedBy.push(userId);
+        message = "피드백에 좋아요를 추가하였습니다.";
+    } else {
+        feedback.likes = Math.max(feedback.likes - 1, 0);
+        feedback.likedBy = feedback.likedBy.filter((id: mongoose.Types.ObjectId) => id !== userId);
+        message = "피드백에 대한 좋아요를 취소하였습니다.";
+    }
+
+    try {
+        await feedback.save();
+    } catch (err) {
+        return next(new HttpError("피드백 좋아요 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+    return res.status(200).json({data: {message, likes: feedback.likes}});
+};
+
 
 // 피드백 수정
 const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -165,6 +219,7 @@ const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunct
 
     return res.status(200).json({message: "공지가 수정되었습니다.", data: {feedback: updatedFeedback}});
 };
+
 
 // 피드백 삭제
 const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -211,4 +266,4 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
     return res.status(204).json({message: "피드백이 삭제되었습니다."});
 };
 
-export {newFeedback, getFeedbackList, getFeedback, updateFeedback, deleteFeedback};
+export {newFeedback, likeFeedback, getFeedbackList, getFeedback, updateFeedback, deleteFeedback};

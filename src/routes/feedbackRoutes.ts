@@ -5,16 +5,18 @@ import {
     deleteFeedback,
     getFeedback,
     getFeedbackList,
+    likeFeedback,
     newFeedback,
     updateFeedback
 } from "../controllers/feedbackControllers";
 
 const router = express.Router();
 
-router.post("/new", checkAuth, feedbackValidator, newFeedback);
-
 router.get("/", checkAuth, getFeedbackList);
 router.get("/:feedbackId", checkAuth, getFeedback);
+
+router.post("/new", checkAuth, feedbackValidator, newFeedback);
+router.post("/like/:feedbackId", checkAuth, likeFeedback);
 
 router.patch("/:feedbackId", checkAuth, feedbackValidator, updateFeedback);
 

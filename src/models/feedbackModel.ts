@@ -11,7 +11,11 @@ interface IFeedback {
     content: string;
     creator: mongoose.Types.ObjectId;
     createdAt: Date;
-    comment: mongoose.Types.ObjectId;
+    comments: mongoose.Types.ObjectId[];
+    views: number;
+    viewedBy: mongoose.Types.ObjectId[];
+    likes: number;
+    likedBy: mongoose.Types.ObjectId[];
 }
 
 const feedbackSchema = new mongoose.Schema<IFeedback>({
@@ -40,11 +44,27 @@ const feedbackSchema = new mongoose.Schema<IFeedback>({
         default: Date.now,
         required: true,
     },
-    comment: {
+    comments: [{
         type: Schema.Types.ObjectId,
         default: null,
         ref: "Comment",
+    }],
+    views: {
+        type: Number,
+        default: 0,
     },
+    viewedBy: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    likes: {
+        type: Number,
+        default: 0
+    },
+    likedBy: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }],
 });
 
 const FeedbackModel = mongoose.model<IFeedback>("Feedback", feedbackSchema);

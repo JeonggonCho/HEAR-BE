@@ -5,6 +5,8 @@ interface INotice {
     content: string;
     createdAt: Date;
     comments: mongoose.Types.ObjectId[];
+    views: number;
+    viewedBy: mongoose.Types.ObjectId[];
 }
 
 const noticeSchema = new mongoose.Schema<INotice>({
@@ -28,6 +30,14 @@ const noticeSchema = new mongoose.Schema<INotice>({
         type: Schema.Types.ObjectId,
         required: true,
         ref: "Comment",
+    }],
+    views: {
+        type: Number,
+        default: 0,
+    },
+    viewedBy: [{
+        type: Schema.Types.ObjectId,
+        ref: "User",
     }],
 });
 

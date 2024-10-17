@@ -75,6 +75,7 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
             _id: n._id,
             title: n.title,
             createdAt: n.createdAt,
+            views: n.views,
         };
     });
 
@@ -113,6 +114,7 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {userId} = req.userData;
     const {noticeId} = req.params;
 
     if (!noticeId) {
@@ -130,11 +132,19 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("유효하지 않은 데이터이므로 공지를 조회 할 수 없습니다.", 403));
     }
 
+    // 공지사항 조회 수
+    if (!notice.viewedBy.includes(userId)) {
+        notice.views += 1;
+        notice.viewedBy.push(userId);
+        await notice.save();
+    }
+
     return res.status(200).json({
         data: {
             title: notice.title,
             content: notice.content,
             createdAt: notice.createdAt,
+            views: notice.views,
         },
     });
 };

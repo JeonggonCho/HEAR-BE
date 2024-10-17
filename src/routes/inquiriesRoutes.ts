@@ -4,6 +4,7 @@ import {
     getInquiries,
     getInquiry,
     getMyInquiries,
+    likeInquiry,
     newInquiry,
     updateInquiry
 } from "../controllers/inquiriesControllers";
@@ -17,6 +18,7 @@ router.get("/me", checkAuth, getMyInquiries); // 내 문의 조회
 router.get("/:inquiryId", checkAuth, getInquiry); // 문의 디테일 조회
 
 router.post("/new", checkAuth, inquiryValidator, newInquiry);
+router.post("/like/:inquiryId", checkAuth, likeInquiry);
 
 router.patch("/:inquiryId", checkAuth, inquiryValidator, updateInquiry);
 

@@ -121,6 +121,13 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         await feedback.save();
     }
 
+    let isLiked;
+    if (feedback.likedBy.includes(userId)) {
+        isLiked = true;
+    } else {
+        isLiked = false;
+    }
+
     return res.status(200).json({
         data: {
             title: feedback.title,
@@ -131,6 +138,7 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
             createdAt: feedback.createdAt,
             views: feedback.views,
             likes: feedback.likes,
+            isLiked: isLiked,
         },
     });
 };
@@ -157,14 +165,17 @@ const likeFeedback = async (req: CustomRequest, res: Response, next: NextFunctio
     }
 
     let message;
+    let isLiked;
     if (!feedback.likedBy.includes(userId)) {
         feedback.likes += 1;
         feedback.likedBy.push(userId);
         message = "피드백에 좋아요를 추가하였습니다.";
+        isLiked = true;
     } else {
         feedback.likes = Math.max(feedback.likes - 1, 0);
-        feedback.likedBy = feedback.likedBy.filter((id: mongoose.Types.ObjectId) => id !== userId);
+        feedback.likedBy = feedback.likedBy.filter((id: mongoose.Types.ObjectId) => !id.equals(userId));
         message = "피드백에 대한 좋아요를 취소하였습니다.";
+        isLiked = false;
     }
 
     try {
@@ -172,7 +183,13 @@ const likeFeedback = async (req: CustomRequest, res: Response, next: NextFunctio
     } catch (err) {
         return next(new HttpError("피드백 좋아요 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
-    return res.status(200).json({data: {message, likes: feedback.likes}});
+    return res.status(200).json({
+        data: {
+            message,
+            likes: feedback.likes,
+            isLiked: isLiked,
+        }
+    });
 };
 
 

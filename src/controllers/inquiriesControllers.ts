@@ -171,6 +171,13 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         await inquiry.save();
     }
 
+    let isLiked;
+    if (inquiry.likedBy.includes(userId)) {
+        isLiked = true;
+    } else {
+        isLiked = false;
+    }
+
     return res.status(200).json({
         data: {
             title: inquiry.title,
@@ -181,6 +188,7 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
             createdAt: inquiry.createdAt,
             views: inquiry.views,
             likes: inquiry.likes,
+            isLiked: isLiked,
         },
     });
 };
@@ -247,14 +255,17 @@ const likeInquiry = async (req: CustomRequest, res: Response, next: NextFunction
 
     // 좋아요 추가 또는 취소 처리
     let message;
+    let isLiked;
     if (!inquiry.likedBy.includes(userId)) {
         inquiry.likes += 1;
         inquiry.likedBy.push(userId);
         message = "문의에 좋아요를 추가하였습니다.";
+        isLiked = true;
     } else {
         inquiry.likes = Math.max(inquiry.likes - 1, 0); // likes가 0 미만으로 내려가지 않도록 설정
-        inquiry.likedBy = inquiry.likedBy.filter((id: mongoose.Types.ObjectId) => id !== userId);
+        inquiry.likedBy = inquiry.likedBy.filter((id: mongoose.Types.ObjectId) => !id.equals(userId));
         message = "문의에 대한 좋아요를 취소하였습니다.";
+        isLiked = false;
     }
 
     try {
@@ -262,7 +273,13 @@ const likeInquiry = async (req: CustomRequest, res: Response, next: NextFunction
     } catch (err) {
         return next(new HttpError("문의 좋아요 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
-    return res.status(200).json({data: {message, likes: inquiry.likes}});
+    return res.status(200).json({
+        data: {
+            message,
+            likes: inquiry.likes,
+            isLiked: isLiked,
+        }
+    });
 };
 
 

@@ -147,6 +147,25 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
 };
 
 
+// 유효한 이메일인지 확인하기
+const checkEmail = async (req: Request, res: Response, next: NextFunction) => {
+    const {email} = req.query;
+
+    let user;
+    try {
+        user = await UserModel.findOne({email});
+    } catch (err) {
+        return next(new HttpError("이메일 유효성 검사 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!user) {
+        return res.status(200).json({data: 200});
+    }
+
+    return res.status(200).json({data: 404});
+};
+
+
 // 경고 목록 조회하기
 const getWarnings = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -578,6 +597,8 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
     return res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
 
+
+// TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역 
 // 유저 탈퇴하기
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
 
@@ -589,6 +610,7 @@ export {
     getUsers,
     getWarnings,
     getManager,
+    checkEmail,
     signup,
     login,
     updateUser,

@@ -6,7 +6,7 @@ import {
     getMyInquiries,
     likeInquiry,
     newInquiry,
-    updateInquiry
+    updateInquiry,
 } from "../controllers/inquiriesControllers";
 import checkAuth from "../middlewares/checkAuth";
 import {inquiryValidator} from "../validators/qnaValidators";

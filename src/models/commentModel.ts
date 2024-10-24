@@ -6,8 +6,11 @@ interface IComment {
     refId: mongoose.Types.ObjectId;
     refType: "inquiry" | "feedback";
     parentId: mongoose.Types.ObjectId;
+    likes: number;
+    likedBy: mongoose.Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
+    childComments: mongoose.Types.ObjectId[];
 }
 
 const commentSchema = new mongoose.Schema<IComment>({
@@ -34,6 +37,18 @@ const commentSchema = new mongoose.Schema<IComment>({
         ref: "Comment",
         default: null,
     },
+    likes: {
+        type: Number,
+        default: 0,
+    },
+    likedBy: [{
+        type: Schema.Types.ObjectId,
+        ref: "User",
+    }],
+    childComments: [{
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+    }],
 }, {timestamps: true});
 
 const CommentModel = mongoose.model<IComment>("Comment", commentSchema);

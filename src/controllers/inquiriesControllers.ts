@@ -2,11 +2,12 @@ import {NextFunction, Response} from "express";
 import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
-import {UserModel} from "../models/userModel";
+import {IUser, UserModel} from "../models/userModel";
 import InquiryModel, {IPopulatedInquiryUser} from "../models/inquiryModel";
 import HttpError from "../models/errorModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
+import CommentModel from "../models/commentModel";
 
 // 문의 등록
 const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -71,6 +72,7 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
     return res.status(201).json({data: {inquiryId: createdInquiry._id}});
 };
 
+
 // 문의 목록 조회
 const getInquiries = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -100,6 +102,7 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
             createdAt: i.createdAt,
             views: i.views,
             likes: i.likes,
+            comments: i.comments.length,
         };
     });
 
@@ -138,6 +141,7 @@ const getMyInquiries = async (req: CustomRequest, res: Response, next: NextFunct
             createdAt: i.createdAt,
             views: i.views,
             likes: i.likes,
+            comments: i.comments.length,
         };
     });
 
@@ -178,17 +182,47 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         isLiked = false;
     }
 
+    let comments = [];
+    try {
+        comments = await CommentModel.find({refId: inquiry._id}).sort({createdAt: -1}).populate<{
+            author: IUser
+        }>("author");
+        comments = comments.map((comment) => {
+            let isLiked = false;
+            if (comment.likedBy.includes(userId)) {
+                isLiked = true;
+            }
+
+            return ({
+                _id: comment._id,
+                content: comment.content,
+                author: comment.author.username,
+                authorId: comment.author._id,
+                likes: comment.likes,
+                createdAt: comment.createdAt,
+                isLiked: isLiked,
+            });
+        });
+    } catch (err) {
+        return next(new HttpError("문의 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
     return res.status(200).json({
         data: {
-            title: inquiry.title,
-            category: inquiry.category,
-            content: inquiry.content,
-            creator: inquiry.creator.username,
-            creatorId: inquiry.creator._id.toString(),
-            createdAt: inquiry.createdAt,
-            views: inquiry.views,
-            likes: inquiry.likes,
-            isLiked: isLiked,
+            inquiry: {
+                _id: inquiry._id,
+                title: inquiry.title,
+                category: inquiry.category,
+                content: inquiry.content,
+                creator: inquiry.creator.username,
+                creatorId: inquiry.creator._id.toString(),
+                createdAt: inquiry.createdAt,
+                views: inquiry.views,
+                likes: inquiry.likes,
+                isLiked: isLiked,
+                comments: inquiry.comments.length,
+            },
+            comments: comments,
         },
     });
 };
@@ -289,6 +323,7 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
+    const {userId} = req.userData;
     const {inquiryId} = req.params;
 
     // 문의 조회
@@ -305,13 +340,15 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     }
 
     // 문의 작성자와 요청자가 다를 경우, 오류 발생시키기
-    if (inquiry.creator._id.toString() !== req.userData.userId) {
+    if (inquiry.creator._id.toString() !== userId) {
         return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 401));
     }
 
     // 문의 삭제 시, 유저의 문의 목록에서도 삭제하기
     const sess = await mongoose.startSession();
     sess.startTransaction();
+
+    // TODO 문의 삭제 시, 문의에 있는 댓글들, 대댓글 모두 cascade 로 삭제하기
 
     try {
         if (inquiry.creator.role === "student" && inquiry.creator.inquiries) {
@@ -332,4 +369,13 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     return res.status(204).json({message: "문의가 삭제되었습니다."});
 };
 
-export {newInquiry, getInquiry, getMyInquiries, getInquiries, likeInquiry, updateInquiry, deleteInquiry};
+
+export {
+    newInquiry,
+    getInquiry,
+    getMyInquiries,
+    getInquiries,
+    likeInquiry,
+    updateInquiry,
+    deleteInquiry,
+};

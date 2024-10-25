@@ -6,8 +6,12 @@ import mongoose, {Types} from "mongoose";
 import {UserModel, WarningModel} from "../models/userModel";
 import HttpError from "../models/errorModel";
 
-import jwt from "../utils/jwtUtil";
 import {CustomRequest} from "../middlewares/checkAuth";
+import jwt from "../utils/jwtUtil";
+import isEmailValid from "../utils/isEmailValid";
+import generateRandomCode from "../utils/generateRandomCode";
+import VerificationCodeModel from "../models/verificationCodeModel";
+import sendEmail from "../utils/sendEmail";
 
 
 // 유저 정보 가져오기
@@ -50,6 +54,7 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
     });
 };
 
+
 // 특정 유저 정보 조회하기
 const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
@@ -87,6 +92,7 @@ const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction
         }
     });
 };
+
 
 // 유저 목록 조회하기
 const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -161,7 +167,6 @@ const checkEmail = async (req: Request, res: Response, next: NextFunction) => {
     if (!user) {
         return res.status(200).json({data: 200});
     }
-
     return res.status(200).json({data: 404});
 };
 
@@ -216,6 +221,7 @@ const getManager = async (req: CustomRequest, res: Response, next: NextFunction)
 
     return res.status(200).json({data: {username: manager[0].username, lab: manager[0].lab}});
 };
+
 
 // 회원가입
 const signup = async (req: Request, res: Response, next: NextFunction) => {
@@ -318,6 +324,7 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
+
 // 로그인
 const login = async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -389,6 +396,51 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
+
+// 이메일 인증 번호 전송
+const sendVerificationCode = async (req: Request, res: Response, next: NextFunction) => {
+    const {email} = req.body;
+
+    if (!isEmailValid(email)) {
+        return next(new HttpError("유효하지 않은 데이터이므로 이메일 인증 번호를 전송 할 수 없습니다.", 403));
+    }
+
+    // 인증 번호 생성
+    const code = generateRandomCode();
+
+    // 인증 번호 객체 모델 생성
+    const verificationCode = new VerificationCodeModel({
+        email: email,
+        code: code,
+    });
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        // 인증 번호 서버 저장
+        await verificationCode.save({session: sess});
+
+        // 이메일로 인증 번호 전송하기
+        await sendEmail(email, "[HEAR] 인증 번호 발송", `<h1>안녕하세요 HEAR 입니다</h1><br/><p>인증 번호: <b>${code}</b></p>`);
+
+        await sess.commitTransaction();
+    } catch (err) {
+        await sess.abortTransaction();
+        return next(new HttpError("이메일 인증 번호를 전송 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
+    }
+    return res.status(200).json({data: {message: "인증 번호가 이메일로 전송되었습니다"}})
+};
+
+
+// 이메일 인증 번호 확인
+const verifyEmailCode = async (req: Request, res: Response, next: NextFunction) => {
+
+};
+
+
 // 유저 정보 수정
 const updateUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -423,6 +475,14 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     // 성공 응답
     return res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
 };
+
+
+// 조교와 운영자만 가능
+// TODO 모든 경고 차감하기
+
+// 조교와 운영자만 가능
+// TODO 모든 유저 교육 미이수로 초기화하기
+
 
 // 경고 부과하기
 const addWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -476,6 +536,7 @@ const addWarning = async (req: CustomRequest, res: Response, next: NextFunction)
     }
 };
 
+
 // 경고 차감하기
 const minusWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -517,6 +578,7 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
     }
 };
 
+
 // 교육 이수 처리하기
 const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -556,6 +618,7 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     return res.status(200).json({data: {passQuiz: user.passQuiz}});
 };
+
 
 // 교육 미이수 처리하기
 const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -598,7 +661,7 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
 };
 
 
-// TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역 
+// TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역
 // 유저 탈퇴하기
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
 
@@ -613,6 +676,8 @@ export {
     checkEmail,
     signup,
     login,
+    sendVerificationCode,
+    verifyEmailCode,
     updateUser,
     addWarning,
     minusWarning,

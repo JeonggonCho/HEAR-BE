@@ -12,8 +12,10 @@ import {
     minusWarning,
     passQuiz,
     resetQuiz,
+    sendVerificationCode,
     signup,
-    updateUser
+    updateUser,
+    verifyEmailCode
 } from "../controllers/usersControllers";
 import {
     addWarningValidator,
@@ -27,15 +29,17 @@ import checkAuth from "../middlewares/checkAuth";
 
 const router = express.Router();
 
-router.post("/signup", signupValidator, signup);
-router.post("/login", loginValidator, login);
-
 router.get("/", checkAuth, getUser);
 router.get("/all", checkAuth, getUsers);
 router.get("/manager", checkAuth, getManager);
 router.get("/warnings", checkAuth, getWarnings);
-router.get("/check-email", checkEmail);
+router.get("/check-email", checkEmail); // 이메일 중복 확인
 router.get("/:userId", checkAuth, getUserInfo);
+
+router.post("/send-verification-code", sendVerificationCode); // 이메일 인증 번호 보내기
+router.post("/verify-email-code", verifyEmailCode) // 이메일 인증 번호 확인
+router.post("/signup", signupValidator, signup);
+router.post("/login", loginValidator, login);
 
 router.patch("/", checkAuth, updateAccountValidator, updateUser);
 router.patch("/warning/add/:userId", checkAuth, addWarningValidator, addWarning);

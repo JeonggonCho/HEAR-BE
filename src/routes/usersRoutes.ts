@@ -11,6 +11,8 @@ import {
     login,
     minusWarning,
     passQuiz,
+    resetAllQuiz,
+    resetAllWarning,
     resetQuiz,
     sendVerificationCode,
     signup,
@@ -42,6 +44,8 @@ router.post("/signup", signupValidator, signup);
 router.post("/login", loginValidator, login);
 
 router.patch("/", checkAuth, updateAccountValidator, updateUser);
+router.patch("/warning", checkAuth, resetAllWarning); // 모든 유저 경고 초기화
+router.patch("/quiz", checkAuth, resetAllQuiz); // 모든 유저 교육 미이수 처리
 router.patch("/warning/add/:userId", checkAuth, addWarningValidator, addWarning);
 router.patch("/warning/minus/:userId", checkAuth, minusWarningValidator, minusWarning);
 router.patch("/quiz/pass/:userId", checkAuth, checkPassQuizValidator, passQuiz);

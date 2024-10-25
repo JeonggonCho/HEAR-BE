@@ -18,7 +18,6 @@ dotenv.config();
 
 const DB_URI = process.env.DB_URI as string;
 const PORT = process.env.PORT;
-const clientOptions = {serverApi: {version: "1" as const, strict: true, deprecationErrors: true}};
 
 const app = express();
 
@@ -61,6 +60,7 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 const startServer = async () => {
     try {
         // Mongoose로 MongoDB 연결
+        const clientOptions = {serverApi: {version: "1" as const, strict: true, deprecationErrors: true}};
         await mongoose.connect(DB_URI, clientOptions);
         console.log("Mongoose와 MongoDB 연결 성공");
 

@@ -2,15 +2,16 @@ import {NextFunction, Request, Response} from "express";
 import {validationResult} from "express-validator";
 import bcrypt from "bcryptjs";
 import mongoose, {Types} from "mongoose";
+import dayjs from "dayjs";
 
 import {UserModel, WarningModel} from "../models/userModel";
+import VerificationCodeModel from "../models/verificationCodeModel";
 import HttpError from "../models/errorModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
 import jwt from "../utils/jwtUtil";
 import isEmailValid from "../utils/isEmailValid";
 import generateRandomCode from "../utils/generateRandomCode";
-import VerificationCodeModel from "../models/verificationCodeModel";
 import sendEmail from "../utils/sendEmail";
 
 
@@ -230,7 +231,32 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
-    const {username, email, password, year, studentId, studio, tel} = req.body;
+    const {username, email, password, year, studentId, studio, tel, code} = req.body;
+
+    // 유효한 이메일인지 확인
+    let verificationCode;
+    try {
+        verificationCode = await VerificationCodeModel.findOne({email: email, code: code, verified: true});
+    } catch (err) {
+        return next(new HttpError("회원가입 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 인증되지 않은 이메일일 경우, 오류 발생
+    if (!verificationCode) {
+        return next(new HttpError("유효하지 않은 이메일입니다.", 422));
+    }
+
+    // 인증된 이메일인 경우, 해당 이메일의 인증 번호 내역 삭제하기
+    let existingVerificationCode;
+    try {
+        existingVerificationCode = await VerificationCodeModel.find({email: email});
+    } catch (err) {
+        return next(new HttpError("이메일 인증 번호를 전송 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (existingVerificationCode.length !== 0) {
+        await Promise.all(existingVerificationCode.map(code => code.deleteOne()));
+    }
 
     // 동일 email 유저 확인
     let existingUser;
@@ -334,7 +360,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     const {email, password} = req.body;
 
-    // email로 유저 찾기
+    // email 로 유저 찾기
     let existingUser;
     try {
         existingUser = await UserModel.findOne({email});
@@ -405,6 +431,32 @@ const sendVerificationCode = async (req: Request, res: Response, next: NextFunct
         return next(new HttpError("유효하지 않은 데이터이므로 이메일 인증 번호를 전송 할 수 없습니다.", 403));
     }
 
+    // 이미 가입된 이메일인지 확인
+    let existingUser;
+    try {
+        existingUser = await UserModel.findOne({email});
+    } catch (err) {
+        return next(new HttpError("이메일 인증 번호를 전송 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (existingUser) {
+        return next(new HttpError("이미 가입된 유저이므로 이메일 인증 번호를 전송 할 수 없습니다.", 403));
+    }
+
+    // 요청 이메일로 전송된 인증 번호 내역이 있는지 확인
+    let existingVerificationCode;
+    try {
+        existingVerificationCode = await VerificationCodeModel.find({email: email});
+    } catch (err) {
+        return next(new HttpError("이메일 인증 번호를 전송 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 동일한 이메일로 요청한 인증 번호가 있을 경우, 삭제하기
+    if (existingVerificationCode.length !== 0) {
+        // await Promise.all 을 통해 모든 삭제 작업 완료 후, 다음 코드로 진행
+        await Promise.all(existingVerificationCode.map(code => code.deleteOne()));
+    }
+
     // 인증 번호 생성
     const code = generateRandomCode();
 
@@ -437,7 +489,49 @@ const sendVerificationCode = async (req: Request, res: Response, next: NextFunct
 
 // 이메일 인증 번호 확인
 const verifyEmailCode = async (req: Request, res: Response, next: NextFunction) => {
+    const {email, code} = req.body;
 
+    if (!isEmailValid(email)) {
+        return next(new HttpError("유효하지 않은 데이터이므로 이메일 인증 번호를 확인 할 수 없습니다.", 403));
+    }
+
+    // 이미 가입된 이메일인지 확인
+    let existingUser;
+    try {
+        existingUser = await UserModel.findOne({email});
+    } catch (err) {
+        return next(new HttpError("이메일 인증 번호 확인 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (existingUser) {
+        return next(new HttpError("이미 가입된 유저이므로 이메일 인증 번호를 확인 할 수 없습니다.", 403));
+    }
+
+    // 해당 인증 번호 찾기
+    let existingVerificationCode;
+    try {
+        existingVerificationCode = await VerificationCodeModel.findOne({email: email, code: code, verified: false});
+    } catch (err) {
+        return next(new HttpError("이메일 인증 번호 확인 중 에러가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingVerificationCode) {
+        return next(new HttpError("유효하지 않은 데이터이므로 이메일 인증 번호를 확인 할 수 없습니다.", 403));
+    }
+
+    // 해당 인증 번호의 createdAt과 지금 요청 시간 차이가 3분이 넘으면 에러 발생
+    const now = dayjs();
+    const codeCreatedAt = dayjs(existingVerificationCode.createdAt);
+
+    if (now.diff(codeCreatedAt, 'minutes') > 3) {
+        existingVerificationCode.deleteOne();
+        return next(new HttpError("인증 번호가 만료되었습니다. 다시 시도해주세요.", 403));
+    }
+
+    existingVerificationCode.verified = true;
+    await existingVerificationCode.save();
+
+    return res.status(200).json({data: {message: "이메일 인증 번호 확인이 완료되었습니다"}});
 };
 
 
@@ -479,9 +573,16 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
 
 // 조교와 운영자만 가능
 // TODO 모든 경고 차감하기
+const resetAllWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
+
+};
+
 
 // 조교와 운영자만 가능
 // TODO 모든 유저 교육 미이수로 초기화하기
+const resetAllQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+
+};
 
 
 // 경고 부과하기
@@ -683,5 +784,7 @@ export {
     minusWarning,
     passQuiz,
     resetQuiz,
-    deleteUser
-}
+    resetAllWarning,
+    resetAllQuiz,
+    deleteUser,
+};

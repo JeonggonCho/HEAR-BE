@@ -25,7 +25,7 @@ const verificationCodeSchema = new mongoose.Schema<IVerificationCode>({
     createdAt: {
         type: Date,
         default: Date.now,
-        expires: "1h", // 1시간 유효함
+        expires: "1h", // 1시간 후 만료
     },
 });
 

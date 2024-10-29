@@ -29,6 +29,6 @@ const verificationCodeSchema = new mongoose.Schema<IVerificationCode>({
     },
 });
 
-const VerificationCodeModel = mongoose.model<IVerificationCode>("VerificationCodeModel", verificationCodeSchema);
+const VerificationCodeModel = mongoose.model<IVerificationCode>("VerificationCode", verificationCodeSchema);
 
 export default VerificationCodeModel;

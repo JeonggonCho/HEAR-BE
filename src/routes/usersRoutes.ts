@@ -3,6 +3,7 @@ import {
     addWarning,
     checkEmail,
     deleteUser,
+    findPassword,
     getManager,
     getUser,
     getUserInfo,
@@ -16,16 +17,19 @@ import {
     resetQuiz,
     sendVerificationCode,
     signup,
+    updatePassword,
     updateUser,
     verifyEmailCode
 } from "../controllers/usersControllers";
 import {
     addWarningValidator,
     checkPassQuizValidator,
+    findPasswordValidator,
     loginValidator,
     minusWarningValidator,
     signupValidator,
-    updateAccountValidator
+    updateAccountValidator,
+    updatePasswordValidator
 } from "../validators/usersValidators";
 import checkAuth from "../middlewares/checkAuth";
 
@@ -44,8 +48,10 @@ router.post("/signup", signupValidator, signup);
 router.post("/login", loginValidator, login);
 
 router.patch("/", checkAuth, updateAccountValidator, updateUser);
+router.patch("/password", checkAuth, updatePasswordValidator, updatePassword);
 router.patch("/warning", checkAuth, resetAllWarning); // 모든 유저 경고 초기화
 router.patch("/quiz", checkAuth, resetAllQuiz); // 모든 유저 교육 미이수 처리
+router.patch("/find-password", findPasswordValidator, findPassword); // 비밀번호 찾기
 router.patch("/warning/add/:userId", checkAuth, addWarningValidator, addWarning);
 router.patch("/warning/minus/:userId", checkAuth, minusWarningValidator, minusWarning);
 router.patch("/quiz/pass/:userId", checkAuth, checkPassQuizValidator, passQuiz);

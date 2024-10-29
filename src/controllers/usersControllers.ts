@@ -13,6 +13,7 @@ import jwt from "../utils/jwtUtil";
 import isEmailValid from "../utils/isEmailValid";
 import generateRandomCode from "../utils/generateRandomCode";
 import sendEmail from "../utils/sendEmail";
+import generatePassword from "../utils/generatePassword";
 
 
 // 유저 정보 가져오기
@@ -546,8 +547,8 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {username, year, studentId, studio, tel} = req.body;
     const {userId} = req.userData;
+    const {username, year, studentId, studio, tel} = req.body;
 
     // 유저 정보 업데이트
     let updatedUser;
@@ -567,7 +568,136 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
     }
 
     // 성공 응답
-    return res.status(200).json({message: "유저 정보가 수정되었습니다.", user: updatedUser});
+    return res.status(200).json({message: "유저 정보가 변경되었습니다.", user: updatedUser});
+};
+
+
+// 비밀번호 변경
+const updatePassword = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+    const {password, newPassword} = req.body;
+
+    // 유저 찾기
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("유저 비밀번호 변경 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 해당 유저가 없을 경우, 에러 발생
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    // 요청 비밀번호와 암호화된 비밀번호 비교
+    let isValidPassword = false;
+    try {
+        isValidPassword = await bcrypt.compare(password, existingUser.password);
+    } catch (err) {
+        return next(new HttpError("비밀번호 변경 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 비밀번호가 안 맞을 경우, 오류 발생
+    if (!isValidPassword) {
+        return next(new HttpError("유효하지 않은 데이터이므로 비밀번호를 변경 할 수 없습니다.", 401));
+    }
+
+    // 새 비밀번호 암호화 및 저장
+    let hashedPassword;
+    try {
+        hashedPassword = await bcrypt.hash(newPassword, 12);
+        existingUser.password = hashedPassword;
+        await existingUser.save();
+    } catch (err) {
+        return next(new HttpError("비밀번호 변경 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 새 비밀번호로 다시 로그인하기
+    // JWT 토큰 생성
+    try {
+        const accessToken = jwt.sign({
+            _id: existingUser._id as Types.ObjectId,
+            email: existingUser.email,
+            username: existingUser.username,
+            role: existingUser.role,
+            studentId: existingUser.studentId,
+        });
+        const [refreshToken] = await jwt.refresh(existingUser._id as mongoose.Types.ObjectId);
+
+        // 결과 반환
+        return res.status(200).json({
+            data: {
+                userId: existingUser._id,
+                email: existingUser.email,
+                username: existingUser.username,
+                studentId: existingUser.studentId,
+                year: existingUser.year,
+                studio: existingUser.studio,
+                passQuiz: existingUser.passQuiz,
+                countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
+                countOfLaserPerDay: existingUser.countOfLaserPerDay,
+                countOfWarning: existingUser.countOfWarning,
+                tel: existingUser.tel,
+                role: existingUser.role,
+                lab: existingUser.lab,
+                accessToken,
+                refreshToken,
+            }
+        });
+    } catch (err) {
+        return next(new HttpError("비밀번호 변경 중 토큰 생성 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+};
+
+
+// 비밀번호 찾기
+const findPassword = async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
+    }
+
+    const {username, email, studentId} = req.body;
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findOne({username, email, studentId});
+    } catch (err) {
+        return next(new HttpError("비밀번호 찾기 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    // 새 비밀번호 생성 및 저장 후 이메일로 전송
+    let hashedPassword;
+    try {
+        // 새 비밀번호 생성
+        const newPassword = generatePassword();
+
+        // 새 비밀 번호 암호화하여 저장
+        hashedPassword = await bcrypt.hash(newPassword, 12);
+        existingUser.password = hashedPassword;
+        await existingUser.save();
+
+        // 이메일로 새 비밀번호 전송하기
+        await sendEmail(email, "[HEAR] 새 비밀번호 발송", `<h1>안녕하세요 HEAR 입니다</h1><br/><p>새 비밀번호: <b>${newPassword}</b></p>`);
+    } catch (err) {
+        return next(new HttpError("비밀번호 찾기 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    return res.status(200).json({data: {message: "새 비밀번호를 이메일로 전송하였습니다"}});
 };
 
 
@@ -780,6 +910,8 @@ export {
     sendVerificationCode,
     verifyEmailCode,
     updateUser,
+    updatePassword,
+    findPassword,
     addWarning,
     minusWarning,
     passQuiz,

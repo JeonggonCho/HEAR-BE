@@ -332,7 +332,7 @@ const getValidLaserInfo = async (req: CustomRequest, res: Response, next: NextFu
     }
 
     if (!lasers || !laserTimes) {
-        res.status(404).json({data: []})
+        return res.status(404).json({data: []})
     }
 
     let laserReservations;

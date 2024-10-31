@@ -62,7 +62,6 @@ const updatePasswordValidator = [
 const findPasswordValidator = [
     checkUsername,
     checkEmail,
-    checkStudentId,
 ];
 
 const addWarningValidator = [

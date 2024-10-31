@@ -59,7 +59,7 @@ const jwtUtil = {
             await RefreshTokenModel.findOneAndDelete({userId}).session(sess);
 
             // 새로운 리프레쉬 토큰 생성
-            const token = jwt.sign({}, JWT_PRIVATE_KEY, {expiresIn: "14d"});
+            const token = jwt.sign({}, JWT_PRIVATE_KEY, {expiresIn: "21d"});
 
             // 리프레쉬 토큰 저장
             const createdRefreshToken = await RefreshTokenModel.create([{userId, token}], {session: sess});

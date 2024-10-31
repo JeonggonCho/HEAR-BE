@@ -10,6 +10,7 @@ import HttpError from "../models/errorModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
 import jwt from "../utils/jwtUtil";
+import jwtUtil from "../utils/jwtUtil";
 import isEmailValid from "../utils/isEmailValid";
 import generateRandomCode from "../utils/generateRandomCode";
 import sendEmail from "../utils/sendEmail";
@@ -536,6 +537,40 @@ const verifyEmailCode = async (req: Request, res: Response, next: NextFunction) 
 };
 
 
+// 리프레시 토큰을 이용한 액세스 토큰 재발급
+const checkRefreshToken = async (req: Request, res: Response, next: NextFunction) => {
+    const {refreshToken, userId} = req.body;
+
+    const isRefreshTokenValid = await jwtUtil.refreshVerify(refreshToken, userId);
+
+    // 리프레시 토큰이 만료되거나 유효하지 않은 경우 에러 발생
+    if (!isRefreshTokenValid) {
+        console.log("리프레시 토큰이 만료되었거나 유효하지 않음")
+        return res.status(404).json({data: {isRefreshTokenValid}});
+    }
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("유저 정보 확인 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    const newAccessToken = jwtUtil.sign({
+        _id: existingUser._id as Types.ObjectId,
+        email: existingUser.email,
+        username: existingUser.username,
+        role: existingUser.role,
+        studentId: existingUser.studentId,
+    });
+    return res.status(200).json({data: {isRefreshTokenValid, accessToken: newAccessToken, refreshToken}});
+};
+
+
 // 유저 정보 수정
 const updateUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -667,36 +702,42 @@ const findPassword = async (req: Request, res: Response, next: NextFunction) => 
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
     }
 
-    const {username, email, studentId} = req.body;
+    const {username, email} = req.body;
 
+    // 해당 이름과 이메일의 유저 찾기
     let existingUser;
     try {
-        existingUser = await UserModel.findOne({username, email, studentId});
+        existingUser = await UserModel.findOne({username, email});
     } catch (err) {
         return next(new HttpError("비밀번호 찾기 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
     }
 
+    // 유저 없을 경우, 에러 발생
     if (!existingUser) {
         return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
     }
 
-    // 새 비밀번호 생성 및 저장 후 이메일로 전송
-    let hashedPassword;
-    try {
-        // 새 비밀번호 생성
-        const newPassword = generatePassword();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
-        // 새 비밀 번호 암호화하여 저장
-        hashedPassword = await bcrypt.hash(newPassword, 12);
+    // 새 비밀번호 생성 및 암호화
+    const newPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    try {
+        // 암호화 된 새 비밀번호 저장
         existingUser.password = hashedPassword;
-        await existingUser.save();
+        await existingUser.save({session: sess});
 
         // 이메일로 새 비밀번호 전송하기
         await sendEmail(email, "[HEAR] 새 비밀번호 발송", `<h1>안녕하세요 HEAR 입니다</h1><br/><p>새 비밀번호: <b>${newPassword}</b></p>`);
+        await sess.commitTransaction();
     } catch (err) {
+        await sess.abortTransaction();
         return next(new HttpError("비밀번호 찾기 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
-
     return res.status(200).json({data: {message: "새 비밀번호를 이메일로 전송하였습니다"}});
 };
 
@@ -909,6 +950,7 @@ export {
     login,
     sendVerificationCode,
     verifyEmailCode,
+    checkRefreshToken,
     updateUser,
     updatePassword,
     findPassword,

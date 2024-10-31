@@ -2,6 +2,7 @@ import express from "express";
 import {
     addWarning,
     checkEmail,
+    checkRefreshToken,
     deleteUser,
     findPassword,
     getManager,
@@ -44,6 +45,7 @@ router.get("/:userId", checkAuth, getUserInfo);
 
 router.post("/send-verification-code", sendVerificationCode); // 이메일 인증 번호 보내기
 router.post("/verify-email-code", verifyEmailCode) // 이메일 인증 번호 확인
+router.post("/refresh-token", checkRefreshToken); // 리프레시 토큰 확인 후, 액세스 토큰 재발급
 router.post("/signup", signupValidator, signup);
 router.post("/login", loginValidator, login);
 

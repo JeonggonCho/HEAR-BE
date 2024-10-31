@@ -10,6 +10,7 @@ import {
     getUserInfo,
     getUsers,
     getWarnings,
+    handoverAssistant,
     login,
     minusWarning,
     passQuiz,
@@ -54,6 +55,7 @@ router.patch("/password", checkAuth, updatePasswordValidator, updatePassword);
 router.patch("/warning", checkAuth, resetAllWarning); // 모든 유저 경고 초기화
 router.patch("/quiz", checkAuth, resetAllQuiz); // 모든 유저 교육 미이수 처리
 router.patch("/find-password", findPasswordValidator, findPassword); // 비밀번호 찾기
+router.patch("/handover-assistant/:targetUserId", checkAuth, handoverAssistant); // 조교 역할 인수인계 하기
 router.patch("/warning/add/:userId", checkAuth, addWarningValidator, addWarning);
 router.patch("/warning/minus/:userId", checkAuth, minusWarningValidator, minusWarning);
 router.patch("/quiz/pass/:userId", checkAuth, checkPassQuizValidator, passQuiz);

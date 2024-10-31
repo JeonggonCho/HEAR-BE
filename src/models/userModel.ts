@@ -109,10 +109,17 @@ const userSchema = new mongoose.Schema<IUser>({
     }],
     lab: {
         type: String,
-        required: function (this: IUser) {
-            return this.role === "manager";
-        },
     },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+        required: true,
+    }
 }, {timestamps: true});
 
 userSchema.plugin(uniqueValidator);
@@ -120,25 +127,35 @@ userSchema.plugin(uniqueValidator);
 userSchema.pre<IUser>('save', function (next) {
     const user = this;
 
-    if (user.role === "admin") {
-        // Admin에게 필요하지 않은 필드 삭제
-        delete user.passQuiz;
-        delete user.studio;
-        delete user.year;
-        delete user.countOfWarning;
-        delete user.inquiries;
-        delete user.lab;
-    } else if (user.role === "manager") {
-        // Manager에게 필요하지 않은 필드 삭제
-        delete user.countOfWarning;
-        delete user.inquiries;
-    } else if (user.role === "student") {
-        // Student에게 필요하지 않은 필드 삭제
-        delete user.lab;
+    if (user.isModified('role')) {
+        if (user.role !== "student") {
+            // 학생이 아닌 경우 필드 제거
+            user.set({
+                passQuiz: undefined,
+                studio: undefined,
+                year: undefined,
+                countOfWarning: undefined,
+                inquiries: undefined
+            });
+        }
+
+        // 역할에 맞는 필드 설정
+        if (user.role === "admin") {
+            // Admin 역할에 필요한 필드 없음
+        } else if (user.role === "manager") {
+            user.lab = user.lab || '';
+        } else if (user.role === "student") {
+            user.passQuiz = user.passQuiz ?? false;
+            user.studio = user.studio || '';
+            user.year = user.year || '1';
+            user.countOfWarning = user.countOfWarning ?? 0;
+            user.inquiries = user.inquiries || [];
+        }
     }
 
     next();
 });
+
 
 const warningSchema = new mongoose.Schema<IWarning>({
     userId: {

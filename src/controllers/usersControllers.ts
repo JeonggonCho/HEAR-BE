@@ -742,6 +742,75 @@ const findPassword = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 
+// 조교 역할 인수인계 하기
+const handoverAssistant = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {targetUserId} = req.params;
+    const {userId} = req.userData;
+
+    // 요청한 대상(조교 또는 운영자) 조회
+    let requestUser;
+    try {
+        requestUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("조교 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!requestUser || (requestUser.role !== "admin" && requestUser.role !== "manager")) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    // 인수인계 대상 조회
+    let targetUser;
+    try {
+        targetUser = await UserModel.findById(targetUserId);
+    } catch (err) {
+        return next(new HttpError("인수인계 대상 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!targetUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
+    }
+
+    // 조교 역할 유저 모두 찾기
+    let managers;
+    try {
+        managers = await UserModel.find({role: "manager"});
+    } catch (err) {
+        return next(new HttpError("조교 인수인계 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 세션을 이용한 트랜잭션 처리
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        // 기존 조교 계정들 삭제
+        if (managers.length > 0) {
+            for (const manager of managers) {
+                await manager.deleteOne({session: sess});
+            }
+        }
+        if (targetUser.role !== "manager") {
+            // 대상 유저의 역할 변경
+            targetUser.role = "manager";
+            await targetUser.save({session: sess});
+        }
+        await sess.commitTransaction();
+        return res.status(200).json({data: {message: "조교 역할 인수인계가 완료되었습니다."}});
+    } catch (err) {
+        console.error("조교 인수인계 중 발생한 에러: ", err);
+        await sess.abortTransaction();
+        return next(new HttpError("조교 인수인계 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
+    }
+};
+
+
 // 조교와 운영자만 가능
 // TODO 모든 경고 차감하기
 const resetAllWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -954,6 +1023,7 @@ export {
     updateUser,
     updatePassword,
     findPassword,
+    handoverAssistant,
     addWarning,
     minusWarning,
     passQuiz,

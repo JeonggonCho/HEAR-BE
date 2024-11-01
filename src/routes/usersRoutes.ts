@@ -61,6 +61,6 @@ router.patch("/warning/minus/:userId", checkAuth, minusWarningValidator, minusWa
 router.patch("/quiz/pass/:userId", checkAuth, checkPassQuizValidator, passQuiz);
 router.patch("/quiz/reset/:userId", checkAuth, checkPassQuizValidator, resetQuiz);
 
-router.delete("/", checkAuth, deleteUser);
+router.delete("/:targetUserId", checkAuth, deleteUser);
 
 export default router;

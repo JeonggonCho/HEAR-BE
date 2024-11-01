@@ -17,6 +17,7 @@ export interface IUser extends Document {
     refreshTokenId: mongoose.Types.ObjectId; // 모든 유저
     inquiries?: mongoose.Types.ObjectId[]; // student
     feedback: mongoose.Types.ObjectId[];
+    comments: mongoose.Types.ObjectId[];
     lab?: string; // manager
     createdAt?: Date; // 가입일
     updatedAt?: Date; // 마지막 수정일
@@ -106,6 +107,11 @@ const userSchema = new mongoose.Schema<IUser>({
         type: Schema.Types.ObjectId,
         required: true,
         ref: "Feedback",
+    }],
+    comments: [{
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "Comment",
     }],
     lab: {
         type: String,

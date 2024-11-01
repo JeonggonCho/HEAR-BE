@@ -4,7 +4,7 @@ interface IComment {
     content: string;
     author: mongoose.Types.ObjectId;
     refId: mongoose.Types.ObjectId;
-    refType: "inquiry" | "feedback";
+    refType: "inquiry" | "feedback" | "notice";
     parentId: mongoose.Types.ObjectId;
     likes: number;
     likedBy: mongoose.Types.ObjectId[];
@@ -29,7 +29,7 @@ const commentSchema = new mongoose.Schema<IComment>({
     },
     refType: {
         type: String,
-        enum: ["inquiry", "feedback",],
+        enum: ["inquiry", "feedback", "notice"],
         required: true,
     },
     parentId: {

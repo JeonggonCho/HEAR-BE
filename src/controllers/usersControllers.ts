@@ -1003,9 +1003,38 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
 
 
 // TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역
-// 유저 탈퇴하기
+// 회원 탈퇴, 삭제하기
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
 
+    const {targetUserId} = req.body;
+    const {role, userId} = req.userData;
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(targetUserId).populate(["RefreshToken", "Inquiry", "Feedback"]);
+    } catch (err) {
+        return next(new HttpError("회원 탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터이므로 회원 탈퇴 처리를 할 수 없습니다.", 403));
+    }
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    if (role === "manager" || role === "admin") {
+        try {
+            await existingUser.deleteOne({session: sess});
+        } catch (err) {
+
+        }
+    } else if (role === "student") {
+
+    }
 };
 
 export {

@@ -1,10 +1,12 @@
-import {CustomRequest} from "../middlewares/checkAuth";
 import {NextFunction, Response} from "express";
-import HttpError from "../models/errorModel";
-import CommentModel from "../models/commentModel";
 import mongoose from "mongoose";
+
+import {CustomRequest} from "../middlewares/checkAuth";
+
+import CommentModel from "../models/commentModel";
 import InquiryModel from "../models/inquiryModel";
-import {IUser} from "../models/userModel";
+import HttpError from "../models/errorModel";
+import {IUser, UserModel} from "../models/userModel";
 
 
 // 댓글 생성
@@ -17,6 +19,17 @@ const newComment = async (req: CustomRequest, res: Response, next: NextFunction)
     const {content, refId, refType} = req.body;
 
     if (content.trim() === "") {
+        return next(new HttpError("유효하지 않은 데이터이므로 문의 댓글을 등록 할 수 없습니다.", 403));
+    }
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("문의 댓글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
         return next(new HttpError("유효하지 않은 데이터이므로 문의 댓글을 등록 할 수 없습니다.", 403));
     }
 
@@ -48,6 +61,8 @@ const newComment = async (req: CustomRequest, res: Response, next: NextFunction)
             try {
                 await comment.save({session: sess});
                 inquiry.comments.push(comment._id);
+                existingUser.comments.push(comment._id);
+                await existingUser.save({session: sess});
                 await inquiry.save({session: sess});
                 await sess.commitTransaction();
             } catch (err) {
@@ -200,6 +215,8 @@ const deleteComment = async (req: CustomRequest, res: Response, next: NextFuncti
 
     // TODO 댓글 삭제 시, 자식 댓글도 cascade 로 삭제하기
     try {
+        comment.author.comments = comment.author.comments.filter((c: mongoose.Types.ObjectId) => !c.equals(commentId));
+        await comment.author.save({session: sess});
         await comment.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {

@@ -1,6 +1,6 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, {Document, Schema} from "mongoose";
 
-interface INotice {
+export interface INotice extends Document {
     title: string;
     content: string;
     createdAt: Date;

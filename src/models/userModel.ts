@@ -1,5 +1,9 @@
 import mongoose, {Document, Schema} from "mongoose";
 import uniqueValidator from "mongoose-unique-validator";
+import InquiryModel from "./inquiryModel";
+import FeedbackModel from "./feedbackModel";
+import CommentModel from "./commentModel";
+import {LaserReservationModel, PrinterReservationModel} from "./reservationModel";
 
 export interface IUser extends Document {
     username: string; // 모든 유저
@@ -129,6 +133,24 @@ const userSchema = new mongoose.Schema<IUser>({
 }, {timestamps: true});
 
 userSchema.plugin(uniqueValidator);
+
+userSchema.pre<IUser>('deleteOne', {document: true, query: false}, async function (next) {
+    const user = this;
+
+    try {
+        await InquiryModel.deleteMany({creator: user._id});
+        await FeedbackModel.deleteMany({creator: user._id});
+        await CommentModel.deleteMany({author: user._id});
+        await PrinterReservationModel.deleteMany({userId: user._id});
+        await LaserReservationModel.deleteMany({userId: user._id});
+
+        // ....
+        
+        next();
+    } catch (error) {
+        next(error as mongoose.CallbackError);
+    }
+});
 
 userSchema.pre<IUser>('save', function (next) {
     const user = this;

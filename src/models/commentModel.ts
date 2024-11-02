@@ -1,6 +1,6 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, {Document, Schema} from "mongoose";
 
-interface IComment {
+interface IComment extends Document {
     content: string;
     author: mongoose.Types.ObjectId;
     refId: mongoose.Types.ObjectId;
@@ -26,6 +26,7 @@ const commentSchema = new mongoose.Schema<IComment>({
     refId: {
         type: Schema.Types.ObjectId,
         required: true,
+        refPath: "refType",
     },
     refType: {
         type: String,

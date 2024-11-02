@@ -1,11 +1,11 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, {Document, Schema} from "mongoose";
 import {IUser} from "./userModel";
 
 export interface IPopulatedFeedbackUser extends IUser {
     _id: mongoose.Types.ObjectId;
 }
 
-interface IFeedback {
+export interface IFeedback extends Document {
     title: string;
     category: "machine" | "reservation" | "room" | "etc";
     content: string;

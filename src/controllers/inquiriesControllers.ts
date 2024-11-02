@@ -58,7 +58,7 @@ const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
         if (!user.inquiries) {
             user.inquiries = [];
         }
-        user.inquiries.push(createdInquiry._id);
+        user.inquiries.push(createdInquiry._id as mongoose.Types.ObjectId);
 
         await user.save({session: sess});
         await sess.commitTransaction();
@@ -353,7 +353,7 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     try {
         if (inquiry.creator.role === "student" && inquiry.creator.inquiries) {
             inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
-                (id) => id.toString() !== inquiry._id.toString()
+                (id) => id.toString() !== (inquiry._id as mongoose.Types.ObjectId).toString()
             );
             await inquiry.creator.save({session: sess});
         }

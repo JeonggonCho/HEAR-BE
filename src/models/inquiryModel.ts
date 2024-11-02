@@ -1,11 +1,11 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, {Document, Schema} from "mongoose";
 import {IUser} from "./userModel";
 
 export interface IPopulatedInquiryUser extends IUser {
     _id: mongoose.Types.ObjectId;
 }
 
-export interface IInquiry {
+export interface IInquiry extends Document {
     title: string;
     category: "machine" | "reservation" | "room" | "etc";
     content: string;

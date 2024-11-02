@@ -45,7 +45,7 @@ const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction
 
     try {
         await createdFeedback.save({session: sess});
-        user.feedback.push(createdFeedback._id);
+        user.feedback.push(createdFeedback._id as mongoose.Types.ObjectId);
         await user.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
@@ -267,7 +267,7 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
 
     try {
         feedback.creator.feedback = feedback.creator.feedback.filter((id) =>
-            id.toString() !== feedback._id.toString()
+            id.toString() !== (feedback._id as mongoose.Types.ObjectId).toString()
         );
 
         await feedback.creator.save({session: sess});

@@ -60,8 +60,10 @@ const newComment = async (req: CustomRequest, res: Response, next: NextFunction)
 
             try {
                 await comment.save({session: sess});
-                inquiry.comments.push(comment._id);
-                existingUser.comments.push(comment._id);
+                // 문의 모델에 댓글 참조
+                inquiry.comments.push(comment._id as mongoose.Types.ObjectId);
+                // 유저 모델에 댓글 참조
+                existingUser.comments.push(comment._id as mongoose.Types.ObjectId);
                 await existingUser.save({session: sess});
                 await inquiry.save({session: sess});
                 await sess.commitTransaction();
@@ -193,11 +195,35 @@ const deleteComment = async (req: CustomRequest, res: Response, next: NextFuncti
     const {userId} = req.userData;
     const {commentId} = req.params;
 
-    let comment;
+    let comment; // 삭제할 타겟 댓글
+    let refDoc: any; // 타겟 댓글이 참조하고 있는 문의 또는 피드백 또는 공지
     try {
         comment = await CommentModel.findById(commentId).populate<{
             author: IUser & { _id: mongoose.Types.ObjectId }
-        }>("author");
+        }>({path: "author", select: "comments"});
+
+        if (!comment) {
+            return next(new HttpError("유효하지 않은 데이터이므로 댓글을 삭제할 수 없습니다.", 403));
+        }
+
+        // 댓글의 refType 에 참조된 문의, 피드백, 공지 모델 객체 찾기
+        switch (comment.refType) {
+            case "inquiry":
+                refDoc = await mongoose.model('Inquiry').findById(comment.refId);
+                break;
+            case "feedback":
+                refDoc = await mongoose.model('Feedback').findById(comment.refId);
+                break;
+            case "notice":
+                refDoc = await mongoose.model('Notice').findById(comment.refId);
+                break;
+            default:
+                return next(new HttpError("유효하지 않은 참조 타입입니다.", 400));
+        }
+
+        if (!refDoc) {
+            return next(new HttpError("참조된 문서를 찾을 수 없습니다.", 404));
+        }
     } catch (err) {
         return next(new HttpError("댓글 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -215,11 +241,18 @@ const deleteComment = async (req: CustomRequest, res: Response, next: NextFuncti
 
     // TODO 댓글 삭제 시, 자식 댓글도 cascade 로 삭제하기
     try {
+        // 문의, 피드백, 공지에서 해당 댓글 삭제
+        refDoc.comments = refDoc.comments.filter((c: mongoose.Types.ObjectId) => !c.equals(commentId));
+        await refDoc.save({session: sess});
+
+        // 유저의 댓글 목록에서 해당 댓글 삭제
         comment.author.comments = comment.author.comments.filter((c: mongoose.Types.ObjectId) => !c.equals(commentId));
         await comment.author.save({session: sess});
+
         await comment.deleteOne({session: sess});
         await sess.commitTransaction();
     } catch (err) {
+        console.log("댓글 삭제 중 에러: ", err);
         await sess.abortTransaction();
         return next(new HttpError("댓글 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     } finally {

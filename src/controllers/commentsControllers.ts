@@ -6,7 +6,7 @@ import {CustomRequest} from "../middlewares/checkAuth";
 import CommentModel from "../models/commentModel";
 import InquiryModel from "../models/inquiryModel";
 import HttpError from "../models/errorModel";
-import {IUser, UserModel} from "../models/userModel";
+import UserModel, {IUser} from "../models/userModel";
 
 
 // 댓글 생성

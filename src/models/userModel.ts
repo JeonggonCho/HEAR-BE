@@ -3,7 +3,15 @@ import uniqueValidator from "mongoose-unique-validator";
 import InquiryModel from "./inquiryModel";
 import FeedbackModel from "./feedbackModel";
 import CommentModel from "./commentModel";
-import {LaserReservationModel, PrinterReservationModel} from "./reservationModel";
+import {
+    CncReservationModel,
+    HeatReservationModel,
+    LaserReservationModel,
+    PrinterReservationModel,
+    SawReservationModel,
+    VacuumReservationModel
+} from "./reservationModel";
+import RefreshTokenModel from "./refreshTokenModel";
 
 export interface IUser extends Document {
     username: string; // 모든 유저
@@ -25,12 +33,6 @@ export interface IUser extends Document {
     lab?: string; // manager
     createdAt?: Date; // 가입일
     updatedAt?: Date; // 마지막 수정일
-}
-
-export interface IWarning {
-    userId: mongoose.Types.ObjectId;
-    message: string;
-    createdAt?: Date;
 }
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -134,24 +136,41 @@ const userSchema = new mongoose.Schema<IUser>({
 
 userSchema.plugin(uniqueValidator);
 
-userSchema.pre<IUser>('deleteOne', {document: true, query: false}, async function (next) {
+// 유저 삭제 시, 수행
+userSchema.pre<IUser>("deleteOne", {document: true, query: false}, async function (next) {
     const user = this;
 
-    try {
-        await InquiryModel.deleteMany({creator: user._id});
-        await FeedbackModel.deleteMany({creator: user._id});
-        await CommentModel.deleteMany({author: user._id});
-        await PrinterReservationModel.deleteMany({userId: user._id});
-        await LaserReservationModel.deleteMany({userId: user._id});
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
 
-        // ....
-        
+    try {
+        // 예약 내역 삭제
+        await LaserReservationModel.deleteMany({userId: user._id}).session(sess);
+        await PrinterReservationModel.deleteMany({userId: user._id}).session(sess);
+        await SawReservationModel.deleteMany({userId: user._id}).session(sess);
+        await VacuumReservationModel.deleteMany({userId: user._id}).session(sess);
+        await HeatReservationModel.deleteMany({userId: user._id}).session(sess);
+        await CncReservationModel.deleteMany({userId: user._id}).session(sess);
+
+        // 문의, 피드백, 댓글 삭제
+        await InquiryModel.deleteMany({creator: user._id}).session(sess);
+        await FeedbackModel.deleteMany({creator: user._id}).session(sess);
+        await CommentModel.deleteMany({author: user._id}).session(sess);
+
+        // 리프레시 토큰 삭제
+        await RefreshTokenModel.deleteMany({userId: user._id}).session(sess);
+
+        await sess.commitTransaction();
         next();
-    } catch (error) {
-        next(error as mongoose.CallbackError);
+    } catch (err) {
+        await sess.abortTransaction();
+        next(err as mongoose.CallbackError);
+    } finally {
+        await sess.endSession();
     }
 });
 
+// 유저 정보 업데이트 및 생성 시, 수행
 userSchema.pre<IUser>('save', function (next) {
     const user = this;
 
@@ -185,19 +204,6 @@ userSchema.pre<IUser>('save', function (next) {
 });
 
 
-const warningSchema = new mongoose.Schema<IWarning>({
-    userId: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: "User",
-    },
-    message: {
-        type: String,
-        required: true,
-    },
-}, {timestamps: true});
-
 const UserModel = mongoose.model<IUser>("User", userSchema);
-const WarningModel = mongoose.model<IWarning>("Warning", warningSchema);
 
-export {UserModel, WarningModel};
+export default UserModel;

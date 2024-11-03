@@ -3,7 +3,7 @@ import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
 import HttpError from "../models/errorModel";
-import {UserModel} from "../models/userModel";
+import UserModel from "../models/userModel";
 import FeedbackModel, {IPopulatedFeedbackUser} from "../models/feedbackModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";

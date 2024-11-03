@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 import mongoose, {Types} from "mongoose";
 import dayjs from "dayjs";
 
-import {UserModel, WarningModel} from "../models/userModel";
+import UserModel from "../models/userModel";
+import WarningModel from "../models/warningModel";
 import VerificationCodeModel from "../models/verificationCodeModel";
 import HttpError from "../models/errorModel";
 
@@ -461,6 +462,7 @@ const sendVerificationCode = async (req: Request, res: Response, next: NextFunct
 
     // 인증 번호 생성
     const code = generateRandomCode();
+    console.log("인증 번호: ", code);
 
     // 인증 번호 객체 모델 생성
     const verificationCode = new VerificationCodeModel({

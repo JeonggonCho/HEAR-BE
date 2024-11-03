@@ -14,7 +14,7 @@ import {
     SawReservationModel,
     VacuumReservationModel
 } from "../models/reservationModel";
-import {IUser, UserModel} from "../models/userModel";
+import UserModel, {IUser} from "../models/userModel";
 import {
     CncModel,
     ICnc,

@@ -2,7 +2,7 @@ import {NextFunction, Response} from "express";
 import {CustomRequest} from "../middlewares/checkAuth";
 import {validationResult} from "express-validator";
 import HttpError from "../models/errorModel";
-import {UserModel} from "../models/userModel";
+import UserModel from "../models/userModel";
 import NoticeModel from "../models/noticeModel";
 
 // 공지 등록

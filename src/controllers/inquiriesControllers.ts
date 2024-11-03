@@ -2,7 +2,7 @@ import {NextFunction, Response} from "express";
 import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
-import {IUser, UserModel} from "../models/userModel";
+import UserModel, {IUser} from "../models/userModel";
 import InquiryModel, {IPopulatedInquiryUser} from "../models/inquiryModel";
 import HttpError from "../models/errorModel";
 
@@ -326,49 +326,48 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
     const {userId} = req.userData;
     const {inquiryId} = req.params;
 
-    // 문의 조회
-    let inquiry;
-    try {
-        inquiry = await InquiryModel.findById(inquiryId).populate<{ creator: IPopulatedInquiryUser }>("creator");
-    } catch (err) {
-        return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
-
-    // 해당 문의가 없을 경우, 오류 발생시키기
-    if (!inquiry) {
-        return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 403));
-    }
-
-    // 문의 작성자와 요청자가 다를 경우, 오류 발생시키기
-    if (inquiry.creator._id.toString() !== userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 401));
-    }
-
-    // 문의 삭제 시, 유저의 문의 목록에서도 삭제하기
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
     // TODO 문의 삭제 시, 문의에 있는 댓글들, 대댓글 모두 cascade 로 삭제하기
-
     try {
-        if (inquiry.creator.role === "student" && inquiry.creator.inquiries) {
-            inquiry.creator.inquiries = inquiry.creator.inquiries.filter(
-                (id) => id.toString() !== (inquiry._id as mongoose.Types.ObjectId).toString()
-            );
-            await inquiry.creator.save({session: sess});
+        // 문의 조회
+        const inquiry = await InquiryModel
+            .findById(inquiryId)
+            .populate<{ creator: IPopulatedInquiryUser }>("creator")
+            .session(sess);
+
+        if (!inquiry) {
+            await sess.abortTransaction();
+            return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 403));
         }
+
+        if (inquiry.creator._id.toString() !== userId) {
+            await sess.abortTransaction();
+            return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 401));
+        }
+
+        // 문의에 달린 댓글들 삭제
+        const comments = await CommentModel
+            .find({refId: inquiry._id, refType: "inquiry"})
+            .session(sess);
+
+        for (const comment of comments) {
+            await comment.deleteOne({session: sess});
+        }
+
+        // 문의 삭제
         await inquiry.deleteOne({session: sess});
+
         await sess.commitTransaction();
+        return res.status(204).json({message: "문의가 삭제되었습니다."});
     } catch (err) {
         await sess.abortTransaction();
         return next(new HttpError("문의 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     } finally {
         await sess.endSession();
     }
-
-    return res.status(204).json({message: "문의가 삭제되었습니다."});
 };
-
 
 export {
     newInquiry,

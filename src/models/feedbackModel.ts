@@ -1,5 +1,7 @@
 import mongoose, {Document, Schema} from "mongoose";
-import {IUser} from "./userModel";
+import UserModel, {IUser} from "./userModel";
+import HttpError from "./errorModel";
+import CommentModel from "./commentModel";
 
 export interface IPopulatedFeedbackUser extends IUser {
     _id: mongoose.Types.ObjectId;
@@ -65,6 +67,38 @@ const feedbackSchema = new mongoose.Schema<IFeedback>({
         type: Schema.Types.ObjectId,
         ref: "User"
     }],
+});
+
+// 피드백 삭제 시, 수행
+feedbackSchema.pre<IFeedback>("deleteOne", {document: true, query: false}, async function (next) {
+    const feedback = this;
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        // 피드백 작성 유저를 찾고 유저의 피드백 내역에서 해당 피드백 삭제
+        const user = await UserModel.findById(feedback.creator).session(sess);
+        if (!user) {
+            next(new HttpError("유저 정보를 찾을 수 없습니다", 404) as mongoose.CallbackError);
+        }
+
+        if (user && user.feedback) {
+            user.feedback = user.feedback.filter(f => !f.equals(feedback._id as mongoose.Types.ObjectId));
+            await user.save({session: sess});
+        }
+
+        // 해당 피드백에 포함된 댓글 삭제
+        await CommentModel.deleteMany({refId: feedback._id, refType: "feedback"}).session(sess);
+
+        await sess.commitTransaction();
+        next();
+    } catch (err) {
+        await sess.abortTransaction();
+        next(err as mongoose.CallbackError);
+    } finally {
+        await sess.endSession();
+    }
 });
 
 const FeedbackModel = mongoose.model<IFeedback>("Feedback", feedbackSchema);

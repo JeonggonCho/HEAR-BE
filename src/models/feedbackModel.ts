@@ -73,31 +73,26 @@ const feedbackSchema = new mongoose.Schema<IFeedback>({
 feedbackSchema.pre<IFeedback>("deleteOne", {document: true, query: false}, async function (next) {
     const feedback = this;
 
-    const sess = await mongoose.startSession();
-    sess.startTransaction();
-
     try {
+        const session = feedback.$session();
+
         // 피드백 작성 유저를 찾고 유저의 피드백 내역에서 해당 피드백 삭제
-        const user = await UserModel.findById(feedback.creator).session(sess);
+        const user = await UserModel.findById(feedback.creator).session(session);
         if (!user) {
             next(new HttpError("유저 정보를 찾을 수 없습니다", 404) as mongoose.CallbackError);
         }
 
         if (user && user.feedback) {
             user.feedback = user.feedback.filter(f => !f.equals(feedback._id as mongoose.Types.ObjectId));
-            await user.save({session: sess});
+            await user.save({session});
         }
 
         // 해당 피드백에 포함된 댓글 삭제
-        await CommentModel.deleteMany({refId: feedback._id, refType: "feedback"}).session(sess);
+        await CommentModel.deleteMany({refId: feedback._id, refType: "feedback"}).session(session);
 
-        await sess.commitTransaction();
         next();
     } catch (err) {
-        await sess.abortTransaction();
         next(err as mongoose.CallbackError);
-    } finally {
-        await sess.endSession();
     }
 });
 

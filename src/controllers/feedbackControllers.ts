@@ -7,6 +7,7 @@ import UserModel from "../models/userModel";
 import FeedbackModel, {IPopulatedFeedbackUser} from "../models/feedbackModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
+import CommentModel from "../models/commentModel";
 
 // 피드백 생성
 const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -247,40 +248,41 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
     const {userId} = req.userData;
     const {feedbackId} = req.params;
 
-    let feedback;
-    try {
-        feedback = await FeedbackModel.findById(feedbackId).populate<{ creator: IPopulatedFeedbackUser }>("creator");
-    } catch (err) {
-        return next(new HttpError("피드백 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
-    }
-
-    if (!feedback) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
-    }
-
-    if (feedback.creator._id.toString() !== userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
-    }
-
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
     try {
-        feedback.creator.feedback = feedback.creator.feedback.filter((id) =>
-            id.toString() !== (feedback._id as mongoose.Types.ObjectId).toString()
-        );
+        const feedback = await FeedbackModel
+            .findById(feedbackId)
+            .populate<{ creator: IPopulatedFeedbackUser }>("creator")
+            .session(sess);
 
-        await feedback.creator.save({session: sess});
+        if (!feedback) {
+            return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 403));
+        }
+
+        if (feedback.creator._id.toString() !== userId) {
+            return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
+        }
+
+        const comments = await CommentModel
+            .find({refId: feedback._id, refType: "feedback"})
+            .session(sess);
+
+        for (const comment of comments) {
+            await comment.deleteOne({session: sess});
+        }
+
         await feedback.deleteOne({session: sess});
+
         await sess.commitTransaction();
+        return res.status(204).json({message: "피드백이 삭제되었습니다."});
     } catch (err) {
         await sess.abortTransaction();
         return next(new HttpError("피드백 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     } finally {
         await sess.endSession();
     }
-
-    return res.status(204).json({message: "피드백이 삭제되었습니다."});
 };
 
 export {newFeedback, likeFeedback, getFeedbackList, getFeedback, updateFeedback, deleteFeedback};

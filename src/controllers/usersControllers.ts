@@ -129,7 +129,7 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     if (username && typeof username === "string" && username.trim() !== "") {
-        filter.username = {$regex: username, $options: "i"};
+        filter.username = {$regex: username, $options: "i"}; // $options: "i"는 insensitive 약자로 정규표현식에서 대소문자 구분하지 않도록 설정
     }
 
     let users;

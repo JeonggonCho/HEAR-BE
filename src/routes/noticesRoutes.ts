@@ -1,6 +1,6 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
-import {noticeValidator} from "../validators/qnaValidators";
+import {noticeValidator} from "../validators/boardValidators";
 import {
     deleteNotice,
     getLatestNotices,

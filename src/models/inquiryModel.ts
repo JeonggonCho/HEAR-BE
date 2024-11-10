@@ -29,6 +29,7 @@ const inquirySchema = new mongoose.Schema<IInquiry>({
     category: {
         type: String,
         required: true,
+        enum: ["machine", "reservation", "room", "etc"],
     },
     content: {
         type: String,
@@ -78,7 +79,9 @@ inquirySchema.pre<IInquiry>("deleteOne", {document: true, query: false}, async f
         const session = inquiry.$session();
 
         // 문의를 작성한 유저를 찾고 유저의 문의 내역에서 해당 문의 삭제
-        const user = await UserModel.findById(inquiry.creator).session(session);
+        const user = await UserModel
+            .findById(inquiry.creator)
+            .session(session);
         if (!user) {
             return next(new HttpError("유저 정보를 찾을 수 없습니다", 404) as mongoose.CallbackError);
         }
@@ -89,7 +92,13 @@ inquirySchema.pre<IInquiry>("deleteOne", {document: true, query: false}, async f
         }
 
         // 해당 문의에 포함된 댓글 삭제
-        await CommentModel.deleteMany({refId: inquiry._id, refType: "inquiry"}).session(session);
+        const comments = await CommentModel
+            .find({refId: inquiry._id, refType: "inquiry"})
+            .session(session);
+
+        for (const comment of comments) {
+            await comment.deleteOne({session});
+        }
 
         next();
     } catch (err) {

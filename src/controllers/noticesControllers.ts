@@ -2,8 +2,10 @@ import {NextFunction, Response} from "express";
 import {CustomRequest} from "../middlewares/checkAuth";
 import {validationResult} from "express-validator";
 import HttpError from "../models/errorModel";
-import UserModel from "../models/userModel";
+import UserModel, {IUser} from "../models/userModel";
 import NoticeModel from "../models/noticeModel";
+import CommentModel from "../models/commentModel";
+
 
 // 공지 등록
 const newNotice = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -18,10 +20,6 @@ const newNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
 
     const {title, content} = req.body;
     const {userId, role} = req.userData;
-
-    if (!userId) {
-        return next(new HttpError("유효하지 않은 데이터이므로 공지를 등록 할 수 없습니다.", 403));
-    }
 
     // 조교 및 운영자 공지 등록 가능
     if (role !== "manager" && role !== "admin") {
@@ -61,7 +59,9 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
 
     let notices;
     try {
-        notices = await NoticeModel.find().sort({createdAt: -1});
+        notices = await NoticeModel
+            .find()
+            .sort({createdAt: -1});
     } catch (err) {
         return next(new HttpError("공지 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -76,6 +76,7 @@ const getNotices = async (req: CustomRequest, res: Response, next: NextFunction)
             title: n.title,
             createdAt: n.createdAt,
             views: n.views,
+            comments: n.comments.length,
         };
     });
 
@@ -90,7 +91,10 @@ const getLatestNotices = async (req: CustomRequest, res: Response, next: NextFun
 
     let latestNotices;
     try {
-        latestNotices = await NoticeModel.find().sort({createdAt: -1}).limit(4);
+        latestNotices = await NoticeModel
+            .find()
+            .sort({createdAt: -1})
+            .limit(4);
     } catch (err) {
         return next(new HttpError("최신 공지 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -139,12 +143,42 @@ const getNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
         await notice.save();
     }
 
+    let comments = [];
+    try {
+        comments = await CommentModel
+            .find({refId: notice._id, refType: "notice"})
+            .sort({createdAt: -1})
+            .populate<{ author: IUser }>("author");
+        comments = comments.map((comment) => {
+            let isLiked = false;
+            if (comment.likedBy.includes(userId)) {
+                isLiked = true;
+            }
+            return ({
+                _id: comment._id,
+                content: comment.content,
+                author: comment.author.username,
+                authorId: comment.author._id,
+                likes: comment.likes,
+                createdAt: comment.createdAt,
+                isLiked: isLiked,
+            });
+        });
+    } catch (err) {
+        return next(new HttpError("공지 댓글 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
     return res.status(200).json({
         data: {
-            title: notice.title,
-            content: notice.content,
-            createdAt: notice.createdAt,
-            views: notice.views,
+            notice: {
+                _id: notice._id,
+                title: notice.title,
+                content: notice.content,
+                createdAt: notice.createdAt,
+                views: notice.views,
+                comments: notice.comments.length,
+            },
+            comments: comments,
         },
     });
 };

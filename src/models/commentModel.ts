@@ -63,7 +63,9 @@ commentSchema.pre("deleteOne", {document: true, query: false}, async function (n
         const session = comment.$session();
 
         // 댓글 작성 유저를 찾고 유저의 댓글 내역에서 해당 댓글 삭제
-        const user = await UserModel.findById(comment.author).session(session);
+        const user = await UserModel
+            .findById(comment.author)
+            .session(session);
         if (!user) {
             return next(new HttpError("유저 정보를 찾을 수 없습니다", 404) as mongoose.CallbackError);
         }

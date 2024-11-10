@@ -3,11 +3,12 @@ import {validationResult} from "express-validator";
 import mongoose from "mongoose";
 
 import HttpError from "../models/errorModel";
-import UserModel from "../models/userModel";
+import UserModel, {IUser} from "../models/userModel";
 import FeedbackModel, {IPopulatedFeedbackUser} from "../models/feedbackModel";
 
 import {CustomRequest} from "../middlewares/checkAuth";
 import CommentModel from "../models/commentModel";
+
 
 // 피드백 생성
 const newFeedback = async (req: CustomRequest, res: Response, next: NextFunction) => {
@@ -68,9 +69,10 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
 
     let feedback: any[];
     try {
-        feedback = await FeedbackModel.find().sort({createdAt: -1}).populate<{
-            creator: IPopulatedFeedbackUser
-        }>("creator");
+        feedback = await FeedbackModel
+            .find()
+            .sort({createdAt: -1})
+            .populate<{ creator: IPopulatedFeedbackUser }>("creator");
     } catch (err) {
         return next(new HttpError("피드백 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -84,11 +86,11 @@ const getFeedbackList = async (req: CustomRequest, res: Response, next: NextFunc
             _id: f._id,
             title: f.title,
             category: f.category,
-            answer: !!f.comment,
             creator: f.creator.username,
             createdAt: f.createdAt,
             views: f.views,
             likes: f.likes,
+            comments: f.comments.length,
         };
     });
 
@@ -107,7 +109,9 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
 
     let feedback;
     try {
-        feedback = await FeedbackModel.findById(feedbackId).populate<{ creator: IPopulatedFeedbackUser }>("creator");
+        feedback = await FeedbackModel
+            .findById(feedbackId)
+            .populate<{ creator: IPopulatedFeedbackUser }>("creator");
     } catch (err) {
         return next(new HttpError("피드백 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -129,17 +133,47 @@ const getFeedback = async (req: CustomRequest, res: Response, next: NextFunction
         isLiked = false;
     }
 
+    let comments = [];
+    try {
+        comments = await CommentModel
+            .find({refId: feedback._id, refType: "feedback"})
+            .sort({createdAt: -1})
+            .populate<{ author: IUser }>("author");
+        comments = comments.map((comment) => {
+            let isLiked = false;
+            if (comment.likedBy.includes(userId)) {
+                isLiked = true;
+            }
+            return ({
+                _id: comment._id,
+                content: comment.content,
+                author: comment.author.username,
+                authorId: comment.author._id,
+                likes: comment.likes,
+                createdAt: comment.createdAt,
+                isLiked: isLiked,
+            });
+        });
+    } catch (err) {
+        return next(new HttpError("피드백 댓글 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
     return res.status(200).json({
         data: {
-            title: feedback.title,
-            category: feedback.category,
-            content: feedback.content,
-            creator: feedback.creator.username,
-            creatorId: feedback.creator._id.toString(),
-            createdAt: feedback.createdAt,
-            views: feedback.views,
-            likes: feedback.likes,
-            isLiked: isLiked,
+            feedback: {
+                _id: feedback._id,
+                title: feedback.title,
+                category: feedback.category,
+                content: feedback.content,
+                creator: feedback.creator.username,
+                creatorId: feedback.creator._id.toString(),
+                createdAt: feedback.createdAt,
+                views: feedback.views,
+                likes: feedback.likes,
+                isLiked: isLiked,
+                comments: feedback.comments.length,
+            },
+            comments: comments,
         },
     });
 };
@@ -226,11 +260,7 @@ const updateFeedback = async (req: CustomRequest, res: Response, next: NextFunct
 
     let updatedFeedback;
     try {
-        updatedFeedback = await FeedbackModel.findByIdAndUpdate(
-            feedbackId,
-            {title, category, content},
-            {new: true},
-        );
+        updatedFeedback = await FeedbackModel.findByIdAndUpdate(feedbackId, {title, category, content}, {new: true},);
     } catch (err) {
         return next(new HttpError("피드백 수정 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -263,14 +293,6 @@ const deleteFeedback = async (req: CustomRequest, res: Response, next: NextFunct
 
         if (feedback.creator._id.toString() !== userId) {
             return next(new HttpError("유효하지 않은 데이터이므로 피드백을 조회 할 수 없습니다.", 401));
-        }
-
-        const comments = await CommentModel
-            .find({refId: feedback._id, refType: "feedback"})
-            .session(sess);
-
-        for (const comment of comments) {
-            await comment.deleteOne({session: sess});
         }
 
         await feedback.deleteOne({session: sess});

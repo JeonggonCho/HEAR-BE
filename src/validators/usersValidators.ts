@@ -76,8 +76,8 @@ const minusWarningValidator = [
         .isInt({min: 1, max: 2}),
 ];
 
-const checkPassQuizValidator = [
-    check("passQuiz", "교육 이수 여부 처리 시, 교육 이수 여부는 참 또는 거짓이여야 합니다")
+const checkPassEducationValidator = [
+    check("passEducation", "교육 이수 여부 처리 시, 교육 이수 여부는 참 또는 거짓이여야 합니다")
         .isBoolean(),
 ];
 
@@ -89,5 +89,5 @@ export {
     findPasswordValidator,
     addWarningValidator,
     minusWarningValidator,
-    checkPassQuizValidator
-}
+    checkPassEducationValidator,
+};

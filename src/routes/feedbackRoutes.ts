@@ -1,6 +1,6 @@
 import express from "express";
 import checkAuth from "../middlewares/checkAuth";
-import {feedbackValidator} from "../validators/qnaValidators";
+import {feedbackValidator} from "../validators/boardValidators";
 import {
     deleteFeedback,
     getFeedback,

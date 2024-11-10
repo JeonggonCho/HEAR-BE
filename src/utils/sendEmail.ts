@@ -25,7 +25,7 @@ const sendEmail = async (email: string, subject: string, content: string) => {
         if (error) {
             console.error("이메일 전송 중 오류 발생: ", error);
         }
-        console.log("이메일 전송 완료: ", info);
+        // console.log("이메일 전송 완료: ", info);
     });
 };
 

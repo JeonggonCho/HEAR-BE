@@ -47,7 +47,7 @@ const getUser = async (req: CustomRequest, res: Response, next: NextFunction) =>
             year: existingUser.year,
             studentId: existingUser.studentId,
             studio: existingUser.studio,
-            passQuiz: existingUser.passQuiz,
+            passEducation: existingUser.passEducation,
             countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
             countOfLaserPerDay: existingUser.countOfLaserPerDay,
             countOfWarning: existingUser.countOfWarning,
@@ -90,7 +90,7 @@ const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction
             year: existingUser.year,
             studentId: existingUser.studentId,
             studio: existingUser.studio,
-            passQuiz: existingUser.passQuiz,
+            passEducation: existingUser.passEducation,
             countOfWarning: existingUser.countOfWarning,
             tel: existingUser.tel,
         }
@@ -105,7 +105,7 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     }
 
     const {role} = req.userData;
-    const {year, passQuiz, countOfWarning, username} = req.query;
+    const {year, passEducation, countOfWarning, username} = req.query;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -118,9 +118,9 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
         filter.year = {$in: yearsFilter};
     }
 
-    if (passQuiz && typeof passQuiz === "string" && passQuiz !== "all") {
-        const passQuizFilter = passQuiz.split(",");
-        filter.passQuiz = {$in: passQuizFilter};
+    if (passEducation && typeof passEducation === "string" && passEducation !== "all") {
+        const passEducationFilter = passEducation.split(",");
+        filter.passEducation = {$in: passEducationFilter};
     }
 
     if (countOfWarning && typeof countOfWarning === "string" && countOfWarning !== "all") {
@@ -134,7 +134,9 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     let users;
     try {
-        users = await UserModel.find(filter).sort({_id: -1});
+        users = await UserModel
+            .find(filter)
+            .sort({_id: -1});
     } catch (err) {
         return next(new HttpError("유저 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -149,7 +151,7 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
                     username: user.username,
                     year: user.year,
                     studentId: user.studentId,
-                    passQuiz: user.passQuiz,
+                    passEducation: user.passEducation,
                     countOfWarning: user.countOfWarning,
                 }))
         });
@@ -185,7 +187,9 @@ const getWarnings = async (req: CustomRequest, res: Response, next: NextFunction
 
     let warnings;
     try {
-        warnings = await WarningModel.find({userId: userId}).sort({createdAt: -1});
+        warnings = await WarningModel
+            .find({userId: userId})
+            .sort({createdAt: -1});
     } catch (err) {
         return next(new HttpError("경고 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -288,7 +292,7 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
         email,
         password: hashedPassword,
         role: "student",
-        passQuiz: false,
+        passEducation: false,
         studio,
         year,
         tel,
@@ -335,7 +339,7 @@ const signup = async (req: Request, res: Response, next: NextFunction) => {
                 studentId: createdUser.studentId,
                 year: createdUser.year,
                 studio: createdUser.studio,
-                passQuiz: createdUser.passQuiz,
+                passEducation: createdUser.passEducation,
                 countOfLaserPerWeek: createdUser.countOfLaserPerWeek,
                 countOfLaserPerDay: createdUser.countOfLaserPerDay,
                 countOfWarning: createdUser.countOfWarning,
@@ -409,7 +413,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 studentId: existingUser.studentId,
                 year: existingUser.year,
                 studio: existingUser.studio,
-                passQuiz: existingUser.passQuiz,
+                passEducation: existingUser.passEducation,
                 countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
                 countOfLaserPerDay: existingUser.countOfLaserPerDay,
                 countOfWarning: existingUser.countOfWarning,
@@ -680,7 +684,7 @@ const updatePassword = async (req: CustomRequest, res: Response, next: NextFunct
                 studentId: existingUser.studentId,
                 year: existingUser.year,
                 studio: existingUser.studio,
-                passQuiz: existingUser.passQuiz,
+                passEducation: existingUser.passEducation,
                 countOfLaserPerWeek: existingUser.countOfLaserPerWeek,
                 countOfLaserPerDay: existingUser.countOfLaserPerDay,
                 countOfWarning: existingUser.countOfWarning,
@@ -822,7 +826,7 @@ const resetAllWarning = async (req: CustomRequest, res: Response, next: NextFunc
 
 // 조교와 운영자만 가능
 // TODO 모든 유저 교육 미이수로 초기화하기
-const resetAllQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const resetAllEducation = async (req: CustomRequest, res: Response, next: NextFunction) => {
 
 };
 
@@ -923,7 +927,7 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
 
 
 // 교육 이수 처리하기
-const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const passEducation = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
@@ -935,7 +939,7 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
 
     const {role} = req.userData;
     const {userId} = req.params;
-    const {passQuiz} = req.body;
+    const {passEducation} = req.body;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -952,19 +956,19 @@ const passQuiz = async (req: CustomRequest, res: Response, next: NextFunction) =
         return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
     }
 
-    if (user.passQuiz !== passQuiz) {
+    if (user.passEducation !== passEducation) {
         return next(new HttpError("유효하지 않은 데이터이므로 교육 이수 처리를 할 수 없습니다.", 403));
     }
 
-    user.passQuiz = true;
+    user.passEducation = true;
     await user.save();
 
-    return res.status(200).json({data: {passQuiz: user.passQuiz}});
+    return res.status(200).json({data: {passEducation: user.passEducation}});
 };
 
 
 // 교육 미이수 처리하기
-const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const resetEducation = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return next(new HttpError("유효하지 않은 입력 데이터를 전달하였습니다.", 422));
@@ -976,7 +980,7 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
 
     const {role} = req.userData;
     const {userId} = req.params;
-    const {passQuiz} = req.body;
+    const {passEducation} = req.body;
 
     if (role !== "manager" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
@@ -993,49 +997,63 @@ const resetQuiz = async (req: CustomRequest, res: Response, next: NextFunction) 
         return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
     }
 
-    if (user.passQuiz !== passQuiz) {
+    if (user.passEducation !== passEducation) {
         return next(new HttpError("유효하지 않은 데이터이므로 교육 미이수 처리를 할 수 없습니다.", 403));
     }
 
-    user.passQuiz = false;
+    user.passEducation = false;
     await user.save();
 
-    return res.status(200).json({data: {passQuiz: user.passQuiz}});
+    return res.status(200).json({data: {passEducation: user.passEducation}});
 };
 
 
-// TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역
+// TODO 유저 탈퇴 - 작성한 문의, 피드백, 이용 내역, 예약 내역, 경고 내역 -> 경고 내역...보관할 필요있음...
 // 회원 탈퇴, 삭제하기
 const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {targetUserId} = req.body;
+    const {targetUserId} = req.params;
     const {role, userId} = req.userData;
-
-    let existingUser;
-    try {
-        existingUser = await UserModel.findById(targetUserId).populate(["RefreshToken", "Inquiry", "Feedback"]);
-    } catch (err) {
-        return next(new HttpError("회원 탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
-    }
-
-    if (!existingUser) {
-        return next(new HttpError("유효하지 않은 데이터이므로 회원 탈퇴 처리를 할 수 없습니다.", 403));
-    }
 
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
-    if (role === "manager" || role === "admin") {
-        try {
-            await existingUser.deleteOne({session: sess});
-        } catch (err) {
+    // `targetUserId`가 유효한 `ObjectId` 형식인지 확인
+    if (!targetUserId || !Types.ObjectId.isValid(targetUserId)) {
+        return next(new HttpError("유효하지 않은 사용자 ID입니다.", 400));
+    }
 
+    try {
+        const existingUser = await UserModel
+            .findById(targetUserId)
+            .session(sess);
+
+        if (!existingUser) {
+            return next(new HttpError("유효하지 않은 데이터이므로 회원 탈퇴 처리를 할 수 없습니다.", 403));
         }
-    } else if (role === "student") {
 
+        // 조교 또는 운영자일 경우, 바로 삭제
+        if (role === "manager" || role === "admin") {
+            await existingUser.deleteOne({session: sess});
+        } else {
+            // 학생일 경우, 본인인 경우에 삭제
+            if ((existingUser._id as mongoose.Types.ObjectId).toString() !== userId.toString()) {
+                return next(new HttpError("유효하지 않은 데이터이므로 회원 탈퇴 처리를 할 수 없습니다.", 403));
+            } else {
+                await existingUser.deleteOne({session: sess});
+            }
+        }
+        await sess.commitTransaction();
+        return res.status(200).json({data: {deletedUserId: existingUser._id}});
+    } catch (err) {
+        console.log("에러: ", err)
+        await sess.abortTransaction();
+        return next(new HttpError("회원 탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
     }
 };
 
@@ -1057,9 +1075,9 @@ export {
     handoverAssistant,
     addWarning,
     minusWarning,
-    passQuiz,
-    resetQuiz,
+    passEducation,
+    resetEducation,
     resetAllWarning,
-    resetAllQuiz,
+    resetAllEducation,
     deleteUser,
 };

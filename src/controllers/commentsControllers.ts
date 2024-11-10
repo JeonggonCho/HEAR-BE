@@ -7,6 +7,8 @@ import CommentModel from "../models/commentModel";
 import InquiryModel from "../models/inquiryModel";
 import HttpError from "../models/errorModel";
 import UserModel, {IUser} from "../models/userModel";
+import FeedbackModel from "../models/feedbackModel";
+import NoticeModel from "../models/noticeModel";
 
 
 // 댓글 생성
@@ -60,12 +62,10 @@ const newComment = async (req: CustomRequest, res: Response, next: NextFunction)
 
             try {
                 await comment.save({session: sess});
-                // 문의 모델에 댓글 참조
                 inquiry.comments.push(comment._id as mongoose.Types.ObjectId);
-                // 유저 모델에 댓글 참조
+                await inquiry.save({session: sess});
                 existingUser.comments.push(comment._id as mongoose.Types.ObjectId);
                 await existingUser.save({session: sess});
-                await inquiry.save({session: sess});
                 await sess.commitTransaction();
             } catch (err) {
                 await sess.abortTransaction();
@@ -77,10 +77,58 @@ const newComment = async (req: CustomRequest, res: Response, next: NextFunction)
 
         // 피드백 댓글인 경우
         case "feedback":
+            let feedback;
+            try {
+                feedback = await FeedbackModel.findById(refId);
+            } catch (err) {
+                return next(new HttpError("피드백 댓글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+            }
+
+            if (!feedback) {
+                return next(new HttpError("유효하지 않은 데이터이므로 피드백 댓글을 등록 할 수 없습니다.", 403));
+            }
+
+            try {
+                await comment.save({session: sess});
+                feedback.comments.push(comment._id as mongoose.Types.ObjectId);
+                await feedback.save({session: sess});
+                existingUser.comments.push(comment._id as mongoose.Types.ObjectId);
+                await existingUser.save({session: sess});
+                await sess.commitTransaction();
+            } catch (err) {
+                await sess.abortTransaction();
+                return next(new HttpError("피드백 댓글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+            } finally {
+                await sess.endSession();
+            }
             break;
 
         // 공지 댓글인 경우
         case "notice":
+            let notice;
+            try {
+                notice = await NoticeModel.findById(refId);
+            } catch (err) {
+                return next(new HttpError("공지 댓글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+            }
+
+            if (!notice) {
+                return next(new HttpError("유효하지 않은 데이터이므로 공지 댓글을 등록 할 수 없습니다.", 403));
+            }
+
+            try {
+                await comment.save({session: sess});
+                notice.comments.push(comment._id as mongoose.Types.ObjectId);
+                await notice.save({session: sess});
+                existingUser.comments.push(comment._id as mongoose.Types.ObjectId);
+                await existingUser.save({session: sess});
+                await sess.commitTransaction();
+            } catch (err) {
+                await sess.abortTransaction();
+                return next(new HttpError("공지 댓글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+            } finally {
+                await sess.endSession();
+            }
             break;
 
         default:
@@ -118,7 +166,9 @@ const updateComment = async (req: CustomRequest, res: Response, next: NextFuncti
 
     let comment;
     try {
-        comment = await CommentModel.findById(commentId).populate("author");
+        comment = await CommentModel
+            .findById(commentId)
+            .populate("author");
         if (!comment) {
             return next(new HttpError("유효하지 않은 데이터이므로 댓글을 수정 할 수 없습니다.", 403));
         }
@@ -198,9 +248,9 @@ const deleteComment = async (req: CustomRequest, res: Response, next: NextFuncti
     let comment; // 삭제할 타겟 댓글
     let refDoc: any; // 타겟 댓글이 참조하고 있는 문의 또는 피드백 또는 공지
     try {
-        comment = await CommentModel.findById(commentId).populate<{
-            author: IUser & { _id: mongoose.Types.ObjectId }
-        }>({path: "author", select: "comments"});
+        comment = await CommentModel
+            .findById(commentId)
+            .populate<{ author: IUser & { _id: mongoose.Types.ObjectId } }>({path: "author", select: "comments"});
 
         if (!comment) {
             return next(new HttpError("유효하지 않은 데이터이므로 댓글을 삭제할 수 없습니다.", 403));

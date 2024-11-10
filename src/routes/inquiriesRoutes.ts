@@ -9,7 +9,7 @@ import {
     updateInquiry,
 } from "../controllers/inquiriesControllers";
 import checkAuth from "../middlewares/checkAuth";
-import {inquiryValidator} from "../validators/qnaValidators";
+import {inquiryValidator} from "../validators/boardValidators";
 
 const router = express.Router();
 

@@ -18,7 +18,7 @@ export interface IUser extends Document {
     email: string; // 모든 유저
     password: string; // 모든 유저
     role: "admin" | "student" | "manager"; // 모든 유저
-    passQuiz?: boolean; // student
+    passEducation?: boolean; // student
     studio?: string; // student
     year?: "1" | "2" | "3" | "4" | "5"; // student
     tel: string; // 모든 유저
@@ -52,9 +52,10 @@ const userSchema = new mongoose.Schema<IUser>({
     role: {
         type: String,
         default: "student",
+        enum: ["admin", "student", "manager"],
         required: true,
     },
-    passQuiz: {
+    passEducation: {
         type: Boolean,
         required: function (this: IUser) {
             return this.role === "student";
@@ -71,6 +72,7 @@ const userSchema = new mongoose.Schema<IUser>({
         required: function (this: IUser) {
             return this.role === "student";
         },
+        enum: ["1", "2", "3", "4", "5"],
     },
     tel: {
         type: String,
@@ -140,33 +142,57 @@ userSchema.plugin(uniqueValidator);
 userSchema.pre<IUser>("deleteOne", {document: true, query: false}, async function (next) {
     const user = this;
 
-    const sess = await mongoose.startSession();
-    sess.startTransaction();
+    const session = user.$session();
 
     try {
         // 예약 내역 삭제
-        await LaserReservationModel.deleteMany({userId: user._id}).session(sess);
-        await PrinterReservationModel.deleteMany({userId: user._id}).session(sess);
-        await SawReservationModel.deleteMany({userId: user._id}).session(sess);
-        await VacuumReservationModel.deleteMany({userId: user._id}).session(sess);
-        await HeatReservationModel.deleteMany({userId: user._id}).session(sess);
-        await CncReservationModel.deleteMany({userId: user._id}).session(sess);
+        await LaserReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
+        await PrinterReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
+        await SawReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
+        await VacuumReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
+        await HeatReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
+        await CncReservationModel
+            .deleteMany({userId: user._id})
+            .session(session);
 
         // 문의, 피드백, 댓글 삭제
-        await InquiryModel.deleteMany({creator: user._id}).session(sess);
-        await FeedbackModel.deleteMany({creator: user._id}).session(sess);
-        await CommentModel.deleteMany({author: user._id}).session(sess);
+        const inquiries = await InquiryModel
+            .find({creator: user._id})
+            .session(session);
+        for (const inquiry of inquiries) {
+            await inquiry.deleteOne({session});
+        }
+
+        const feedback = await FeedbackModel
+            .find({creator: user._id})
+            .session(session);
+        for (const feed of feedback) {
+            await feed.deleteOne({session});
+        }
+
+        const comments = await CommentModel
+            .find({author: user._id})
+            .session(session);
+        for (const comment of comments) {
+            await comment.deleteOne({session});
+        }
 
         // 리프레시 토큰 삭제
-        await RefreshTokenModel.deleteMany({userId: user._id}).session(sess);
+        await RefreshTokenModel.deleteMany({userId: user._id}).session(session);
 
-        await sess.commitTransaction();
         next();
     } catch (err) {
-        await sess.abortTransaction();
         next(err as mongoose.CallbackError);
-    } finally {
-        await sess.endSession();
     }
 });
 
@@ -178,7 +204,7 @@ userSchema.pre<IUser>('save', function (next) {
         if (user.role !== "student") {
             // 학생이 아닌 경우 필드 제거
             user.set({
-                passQuiz: undefined,
+                passEducation: undefined,
                 studio: undefined,
                 year: undefined,
                 countOfWarning: undefined,
@@ -192,14 +218,13 @@ userSchema.pre<IUser>('save', function (next) {
         } else if (user.role === "manager") {
             user.lab = user.lab || '';
         } else if (user.role === "student") {
-            user.passQuiz = user.passQuiz ?? false;
+            user.passEducation = user.passEducation ?? false;
             user.studio = user.studio || '';
             user.year = user.year || '1';
             user.countOfWarning = user.countOfWarning ?? 0;
             user.inquiries = user.inquiries || [];
         }
     }
-
     next();
 });
 

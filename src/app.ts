@@ -11,6 +11,7 @@ import noticesRoutes from "./routes/noticesRoutes";
 import machinesRoutes from "./routes/machinesRoutes";
 import reservationsRoutes from "./routes/reservationsRoutes";
 import commentsRoutes from "./routes/commentsRoutes";
+import educationRoutes from "./routes/educationRoutes";
 
 import HttpError from "./models/errorModel";
 
@@ -40,7 +41,7 @@ app.use("/api/notices", noticesRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/machines", machinesRoutes)
 app.use("/api/reservations", reservationsRoutes);
-// app.use("/api/quiz");
+app.use("/api/education", educationRoutes);
 
 app.use((req, res, next) => {
     return next(new HttpError("라우트를 찾지 못했습니다", 404));

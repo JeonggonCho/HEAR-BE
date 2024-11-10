@@ -9,7 +9,7 @@ export interface IPopulatedFeedbackUser extends IUser {
 
 export interface IFeedback extends Document {
     title: string;
-    category: "machine" | "reservation" | "room" | "etc";
+    category: "good" | "bad" | "suggest" | "etc";
     content: string;
     creator: mongoose.Types.ObjectId;
     createdAt: Date;
@@ -29,6 +29,7 @@ const feedbackSchema = new mongoose.Schema<IFeedback>({
     category: {
         type: String,
         required: true,
+        enum: ["good", "bad", "suggest", "etc"],
     },
     content: {
         type: String,
@@ -77,7 +78,9 @@ feedbackSchema.pre<IFeedback>("deleteOne", {document: true, query: false}, async
         const session = feedback.$session();
 
         // 피드백 작성 유저를 찾고 유저의 피드백 내역에서 해당 피드백 삭제
-        const user = await UserModel.findById(feedback.creator).session(session);
+        const user = await UserModel
+            .findById(feedback.creator)
+            .session(session);
         if (!user) {
             next(new HttpError("유저 정보를 찾을 수 없습니다", 404) as mongoose.CallbackError);
         }
@@ -88,8 +91,13 @@ feedbackSchema.pre<IFeedback>("deleteOne", {document: true, query: false}, async
         }
 
         // 해당 피드백에 포함된 댓글 삭제
-        await CommentModel.deleteMany({refId: feedback._id, refType: "feedback"}).session(session);
+        const comments = await CommentModel
+            .find({refId: feedback._id, refType: "feedback"})
+            .session(session);
 
+        for (const comment of comments) {
+            await comment.deleteOne({session});
+        }
         next();
     } catch (err) {
         next(err as mongoose.CallbackError);

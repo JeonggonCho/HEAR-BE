@@ -9,6 +9,7 @@ import HttpError from "../models/errorModel";
 import {CustomRequest} from "../middlewares/checkAuth";
 import CommentModel from "../models/commentModel";
 
+
 // 문의 등록
 const newInquiry = async (req: CustomRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -81,9 +82,10 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
 
     let inquiries: any[];
     try {
-        inquiries = await InquiryModel.find().sort({createdAt: -1}).populate<{
-            creator: IPopulatedInquiryUser
-        }>("creator");
+        inquiries = await InquiryModel
+            .find()
+            .sort({createdAt: -1})
+            .populate<{ creator: IPopulatedInquiryUser }>("creator");
     } catch (err) {
         return next(new HttpError("문의 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -97,7 +99,6 @@ const getInquiries = async (req: CustomRequest, res: Response, next: NextFunctio
             _id: i._id,
             title: i.title,
             category: i.category,
-            answer: !!i.comment,
             creator: i.creator.username,
             createdAt: i.createdAt,
             views: i.views,
@@ -120,9 +121,10 @@ const getMyInquiries = async (req: CustomRequest, res: Response, next: NextFunct
 
     let inquiries: any[];
     try {
-        inquiries = await InquiryModel.find({creator: userId}).sort({createdAt: -1}).populate<{
-            creator: IPopulatedInquiryUser
-        }>("creator");
+        inquiries = await InquiryModel
+            .find({creator: userId})
+            .sort({createdAt: -1})
+            .populate<{ creator: IPopulatedInquiryUser }>("creator");
     } catch (err) {
         return next(new HttpError("문의 목록 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -160,7 +162,9 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
 
     let inquiry;
     try {
-        inquiry = await InquiryModel.findById(inquiryId).populate<{ creator: IPopulatedInquiryUser }>("creator");
+        inquiry = await InquiryModel
+            .findById(inquiryId)
+            .populate<{ creator: IPopulatedInquiryUser }>("creator");
     } catch (err) {
         return next(new HttpError("문의 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -184,15 +188,15 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
 
     let comments = [];
     try {
-        comments = await CommentModel.find({refId: inquiry._id}).sort({createdAt: -1}).populate<{
-            author: IUser
-        }>("author");
+        comments = await CommentModel
+            .find({refId: inquiry._id, refType: "inquiry"})
+            .sort({createdAt: -1})
+            .populate<{ author: IUser }>("author");
         comments = comments.map((comment) => {
             let isLiked = false;
             if (comment.likedBy.includes(userId)) {
                 isLiked = true;
             }
-
             return ({
                 _id: comment._id,
                 content: comment.content,
@@ -204,7 +208,7 @@ const getInquiry = async (req: CustomRequest, res: Response, next: NextFunction)
             });
         });
     } catch (err) {
-        return next(new HttpError("문의 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        return next(new HttpError("문의 댓글 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
     return res.status(200).json({
@@ -345,15 +349,6 @@ const deleteInquiry = async (req: CustomRequest, res: Response, next: NextFuncti
         if (inquiry.creator._id.toString() !== userId) {
             await sess.abortTransaction();
             return next(new HttpError("유효하지 않은 데이터이므로 문의를 삭제 할 수 없습니다.", 401));
-        }
-
-        // 문의에 달린 댓글들 삭제
-        const comments = await CommentModel
-            .find({refId: inquiry._id, refType: "inquiry"})
-            .session(sess);
-
-        for (const comment of comments) {
-            await comment.deleteOne({session: sess});
         }
 
         // 문의 삭제

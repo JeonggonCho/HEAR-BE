@@ -39,6 +39,7 @@ interface IEducationSettings {
     startDate: Date;
     endDate: Date;
     status: boolean;
+    cutOffPoint: number;
 }
 
 const questionSchema = new mongoose.Schema<EducationType>({
@@ -85,6 +86,10 @@ const educationSettingsSchema = new mongoose.Schema<IEducationSettings>({
         type: Boolean,
         required: true,
         default: false,
+    },
+    cutOffPoint: {
+        type: Number,
+        default: 0,
     },
 });
 

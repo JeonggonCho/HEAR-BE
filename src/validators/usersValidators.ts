@@ -1,5 +1,5 @@
 import {check} from "express-validator";
-import {EMAIL_REGEX, PW_REGEX, STUDENTID_REGEX, TEL_REGEX} from "../constants/authRegex";
+import {EMAIL_REGEX, PW_REGEX, STUDENTID_REGEX, TEL_REGEX} from "../constants/regex";
 
 const checkUsername = check("username", "이름을 입력해주세요")
     .not().isEmpty();

@@ -2,12 +2,13 @@ import {NextFunction, Response} from "express";
 import mongoose from "mongoose";
 import {CustomRequest} from "../middlewares/checkAuth";
 import HttpError from "../models/errorModel";
-import {EducationSettingsModel, EducationType, QuestionModel} from "../models/educationModel";
+import {EducationSettingsModel, EducationType, QuestionModel, TestResultModel} from "../models/educationModel";
 import {validationResult} from "express-validator";
+import dayjs from "dayjs";
 
 
-// 교육 문제 조회
-const getQuestions = async (req: CustomRequest, res: Response, next: NextFunction) => {
+// 교육 문제 및 설정 조회
+const getQuestionsAndSettings = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -25,8 +26,96 @@ const getQuestions = async (req: CustomRequest, res: Response, next: NextFunctio
         settings = await EducationSettingsModel.find();
         return res.status(200).json({data: {message: "교육 문제 조회 성공", questions: questions, settings: settings[0]}});
     } catch (err) {
-        return next(new HttpError("교육 문제 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+        return next(new HttpError("교육 문제 및 설정 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
+};
+
+
+// 교육 설정 조회
+const getSettings = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {role} = req.userData;
+
+    if (role !== "manager" && role !== "admin") {
+        return next(new HttpError("조교만 문제 조회가 가능합니다.", 403));
+    }
+
+    let settings;
+    try {
+        settings = await EducationSettingsModel.find();
+        return res.status(200).json({
+            data: {
+                startDate: settings[0].startDate,
+                endDate: settings[0].endDate,
+                status: settings[0].status,
+            }
+        });
+    } catch (err) {
+        return next(new HttpError("교육 설정 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+};
+
+
+// 문제 조회
+const getQuestions = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    let settings;
+    try {
+        settings = await EducationSettingsModel.find();
+    } catch (err) {
+        return next(new HttpError("문제 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    const {startDate, endDate, status} = settings[0];
+    const currentDate = new Date();
+
+    // 현재 교육 게시 중인지 확인
+    if (!status) {
+        return next(new HttpError("현재 문제를 조회 할 수 없습니다.", 500));
+    }
+
+    const start = dayjs(startDate, "YYYY-MM-DD");
+    const end = dayjs(endDate, "YYYY-MM-DD");
+    const now = dayjs(currentDate, "YYYY-MM-DD");
+
+    // 시작일과 종료일이 있는지 확인하고, 현재 날짜가 범위 내에 있는지 확인
+    if (!startDate || !endDate || now.isBefore(start) || now.isAfter(end)) {
+        return next(new HttpError("현재 문제를 조회 할 수 없습니다.", 500));
+    }
+
+    // 이미 테스트를 완료한 학생이 요청했는지 확인
+    let testResult;
+    try {
+        testResult = await TestResultModel.find({userId: userId});
+    } catch (err) {
+        return next(new HttpError("문제 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (testResult.length !== 0) {
+        return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
+    }
+
+    let questions;
+    try {
+        questions = await QuestionModel.find();
+        return res.status(200).json({data: questions});
+    } catch (err) {
+        return next(new HttpError("교육 설정 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+};
+
+
+// 문제 제출
+const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) => {
+
 };
 
 
@@ -166,4 +255,13 @@ const settingCutOffPoint = async (req: CustomRequest, res: Response, next: NextF
 };
 
 
-export {getQuestions, saveQuestions, implementationEducation, settingDate, settingCutOffPoint};
+export {
+    getQuestionsAndSettings,
+    getSettings,
+    getQuestions,
+    checkTest,
+    saveQuestions,
+    implementationEducation,
+    settingDate,
+    settingCutOffPoint
+};

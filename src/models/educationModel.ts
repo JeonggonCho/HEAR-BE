@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 import HttpError from "./errorModel";
 
 export interface IShortAnswer {
@@ -40,6 +40,16 @@ interface IEducationSettings {
     endDate: Date;
     status: boolean;
     cutOffPoint: number;
+}
+
+interface ITestResult {
+    userId: mongoose.Types.ObjectId;
+    questions: {
+        questionId: mongoose.Types.ObjectId;
+        myAnswer: string;
+        isCorrect: boolean;
+    }[];
+    isPassed: boolean;
 }
 
 const questionSchema = new mongoose.Schema<EducationType>({
@@ -93,7 +103,36 @@ const educationSettingsSchema = new mongoose.Schema<IEducationSettings>({
     },
 });
 
+const testResultSchema = new mongoose.Schema<ITestResult>({
+    userId: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+    questions: [{
+        questionId: {
+            type: Schema.Types.ObjectId,
+            ref: "Question",
+            required: true,
+        },
+        myAnswer: {
+            type: String,
+            required: true,
+        },
+        isCorrect: {
+            type: Boolean,
+            required: true,
+        },
+    }],
+    isPassed: {
+        type: Boolean,
+        required: true,
+    }
+});
+
+
 const QuestionModel = mongoose.model<EducationType>("Question", questionSchema);
 const EducationSettingsModel = mongoose.model<IEducationSettings>("EducationSettings", educationSettingsSchema);
+const TestResultModel = mongoose.model<ITestResult>("TestResult", testResultSchema);
 
-export {QuestionModel, EducationSettingsModel};
+export {QuestionModel, EducationSettingsModel, TestResultModel};

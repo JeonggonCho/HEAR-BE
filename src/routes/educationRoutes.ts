@@ -1,7 +1,10 @@
 import express from "express";
 
 import {
+    checkTest,
     getQuestions,
+    getQuestionsAndSettings,
+    getSettings,
     implementationEducation,
     saveQuestions,
     settingCutOffPoint,
@@ -13,7 +16,11 @@ import {eductionDateValidator} from "../validators/educationValidators";
 
 const router = express.Router();
 
-router.get("/", checkAuth, getQuestions);
+router.get("/", checkAuth, getQuestionsAndSettings);
+router.get("/settings", checkAuth, getSettings);
+router.get("/questions", checkAuth, getQuestions);
+
+router.post("/check", checkAuth, checkTest);
 
 router.patch("/", checkAuth, saveQuestions);
 router.patch("/implementation", checkAuth, implementationEducation);

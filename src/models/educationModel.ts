@@ -46,7 +46,7 @@ interface ITestResult {
     userId: mongoose.Types.ObjectId;
     questions: {
         questionId: mongoose.Types.ObjectId;
-        myAnswer: string;
+        myAnswer: string | string[];
         isCorrect: boolean;
     }[];
     isPassed: boolean;
@@ -116,7 +116,7 @@ const testResultSchema = new mongoose.Schema<ITestResult>({
             required: true,
         },
         myAnswer: {
-            type: String,
+            type: Schema.Types.Mixed,
             required: true,
         },
         isCorrect: {

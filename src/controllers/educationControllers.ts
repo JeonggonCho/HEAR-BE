@@ -1,10 +1,13 @@
 import {NextFunction, Response} from "express";
 import mongoose from "mongoose";
+import dayjs from "dayjs";
+import {validationResult} from "express-validator";
+
 import {CustomRequest} from "../middlewares/checkAuth";
+
 import HttpError from "../models/errorModel";
 import {EducationSettingsModel, EducationType, QuestionModel, TestResultModel} from "../models/educationModel";
-import {validationResult} from "express-validator";
-import dayjs from "dayjs";
+import UserModel from "../models/userModel";
 
 
 // 교육 문제 및 설정 조회
@@ -35,12 +38,6 @@ const getQuestionsAndSettings = async (req: CustomRequest, res: Response, next: 
 const getSettings = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
-    }
-
-    const {role} = req.userData;
-
-    if (role !== "manager" && role !== "admin") {
-        return next(new HttpError("조교만 문제 조회가 가능합니다.", 403));
     }
 
     let settings;
@@ -106,16 +103,231 @@ const getQuestions = async (req: CustomRequest, res: Response, next: NextFunctio
     let questions;
     try {
         questions = await QuestionModel.find();
-        return res.status(200).json({data: questions});
+        const processedQuestions = questions.map((q) => {
+            if (q.questionType === "shortAnswer") {
+                return {
+                    _id: q._id,
+                    questionType: q.questionType,
+                    question: q.question,
+                    explanation: q.explanation,
+                };
+            } else if (q.questionType === "singleChoice" || q.questionType === "multipleChoice") {
+                return {
+                    _id: q._id,
+                    questionType: q.questionType,
+                    question: q.question,
+                    explanation: q.explanation,
+                    options: q.options.map((opt) => {
+                        return {
+                            optionId: opt.optionId,
+                            content: opt.content,
+                        };
+                    }),
+                };
+            }
+        });
+        return res.status(200).json({data: {questions: processedQuestions}});
     } catch (err) {
         return next(new HttpError("교육 설정 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 };
 
 
+// 유저의 테스트 응시 가능 여부 확인 조회
+const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    let settings;
+    try {
+        settings = await EducationSettingsModel.find();
+    } catch (err) {
+        return next(new HttpError("테스트 응시 가능 여부 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    const {startDate, endDate, status} = settings[0];
+    const currentDate = new Date();
+
+    // 현재 교육 게시 중인지 확인
+    if (!status) {
+        return next(new HttpError("현재 문제를 조회 할 수 없습니다.", 500));
+    }
+
+    const start = dayjs(startDate, "YYYY-MM-DD");
+    const end = dayjs(endDate, "YYYY-MM-DD");
+    const now = dayjs(currentDate, "YYYY-MM-DD");
+
+    // 시작일과 종료일이 있는지 확인하고, 현재 날짜가 범위 내에 있는지 확인
+    if (!startDate || !endDate || now.isBefore(start) || now.isAfter(end)) {
+        return next(new HttpError("현재 문제를 조회 할 수 없습니다.", 500));
+    }
+
+    // 이미 테스트를 완료한 학생이 요청했는지 확인
+    let testResult;
+    try {
+        testResult = await TestResultModel.find({userId: userId});
+    } catch (err) {
+        return next(new HttpError("테스트 응시 가능 여부 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (testResult.length !== 0) {
+        return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
+    }
+
+    return res.status(200).json({data: {message: "테스트 응시가 가능합니다."}});
+};
+
+
 // 문제 제출
 const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
 
+    const {userId, role} = req.userData;
+    const {testAnswers} = req.body;
+
+    if (role === "manager") {
+        return next(new HttpError("조교는 문제를 제출 할 수 없습니다.", 500));
+    }
+
+    let settings;
+    try {
+        settings = await EducationSettingsModel.find();
+    } catch (err) {
+        return next(new HttpError("테스트 응시 가능 여부 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    const {startDate, endDate, status, cutOffPoint} = settings[0];
+    const currentDate = new Date();
+
+    // 현재 교육 게시 중인지 확인
+    if (!status) {
+        return next(new HttpError("현재 문제를 제출 할 수 없습니다.", 500));
+    }
+
+    const start = dayjs(startDate, "YYYY-MM-DD");
+    const end = dayjs(endDate, "YYYY-MM-DD");
+    const now = dayjs(currentDate, "YYYY-MM-DD");
+
+    // 시작일과 종료일이 있는지 확인하고, 현재 날짜가 범위 내에 있는지 확인
+    if (!startDate || !endDate || now.isBefore(start) || now.isAfter(end)) {
+        return next(new HttpError("현재 문제를 조회 할 수 없습니다.", 500));
+    }
+
+    // 이미 테스트를 완료한 학생이 요청했는지 확인
+    let testResult;
+    try {
+        testResult = await TestResultModel.find({userId: userId});
+    } catch (err) {
+        return next(new HttpError("문제 제출 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (testResult.length !== 0) {
+        return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
+    }
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        // 틀린 문제 개수 카운팅
+        let countOfWrong = 0;
+
+        // 테스트 결과 모델 객체 생성
+        let testResult = new TestResultModel({
+            userId: userId,
+            questions: [],
+            isPassed: false,
+        });
+
+        const questions = await QuestionModel.find();
+
+        // 제출한 답을 순회하면서 답안 검사하기
+        for (let answer of testAnswers) {
+            const targetIndex = questions.findIndex(q => q._id.toString() === answer.questionId.toString());
+
+            if (targetIndex === -1) {
+                return next(new HttpError("유효하지 않은 데이터이므로 문제를 제출 할 수 없습니다.", 400));
+            }
+
+            const qType = questions[targetIndex].questionType;
+
+            let questionResult = {
+                questionId: new mongoose.Types.ObjectId(answer.questionId),
+                myAnswer: answer.myAnswer,
+                isCorrect: false,
+            };
+
+            switch (qType) {
+                case "shortAnswer":
+                    if (questions[targetIndex].answer === answer.myAnswer) {
+                        questionResult["isCorrect"] = true;
+                    } else {
+                        countOfWrong++;
+                    }
+                    testResult.questions.push(questionResult);
+                    break;
+                case "singleChoice":
+                    const singleChoiceAnswer = questions[targetIndex].options
+                        .filter((opt) => opt.isAnswer)[0]?.optionId;
+                    if (singleChoiceAnswer === answer.myAnswer) {
+                        questionResult["isCorrect"] = true;
+                    } else {
+                        countOfWrong++;
+                    }
+                    testResult.questions.push(questionResult);
+                    break;
+                case "multipleChoice":
+                    const multipleChoiceAnswer: string[] = questions[targetIndex].options
+                        .filter((opt) => opt.isAnswer)
+                        .map(a => a.optionId as string);
+
+                    if ((Array.isArray(answer.myAnswer) && answer.myAnswer.length === multipleChoiceAnswer.length)) {
+                        const setA = new Set(answer.myAnswer as string[]);
+                        const setB = new Set(multipleChoiceAnswer);
+                        if ([...setA].every(value => setB.has(value))) {
+                            questionResult["isCorrect"] = true;
+                        } else {
+                            countOfWrong++;
+                        }
+                    } else {
+                        countOfWrong++;
+                    }
+                    testResult.questions.push(questionResult);
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        const existingUser = await UserModel.findById(userId).session(sess);
+
+        // 유저가 없을 경우, 에러 발생
+        if (!existingUser) {
+            await sess.abortTransaction();
+            return next(new HttpError("유효하지 않은 데이터이므로 문제를 제출 할 수 없습니다.", 403));
+        }
+
+        // 커트라인 개수 이하로 틀린 경우, 유저의 교육 이수 여부를 통과로 처리하기
+        existingUser.passEducation = countOfWrong <= cutOffPoint;
+        testResult.isPassed = countOfWrong <= cutOffPoint;
+
+        await testResult.save({session: sess});
+        await existingUser.save({session: sess});
+
+        await sess.commitTransaction();
+        return res.status(200).json({data: {message: "문제 제출 및 검사가 완료되었습니다."}});
+    } catch (err) {
+        console.log("문제 제출 에러: ", err);
+        await sess.abortTransaction();
+        return next(new HttpError("문제 제출 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
+    }
 };
 
 
@@ -259,6 +471,7 @@ export {
     getQuestionsAndSettings,
     getSettings,
     getQuestions,
+    getUserTestStatus,
     checkTest,
     saveQuestions,
     implementationEducation,

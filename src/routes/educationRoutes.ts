@@ -5,6 +5,7 @@ import {
     getQuestions,
     getQuestionsAndSettings,
     getSettings,
+    getUserTestStatus,
     implementationEducation,
     saveQuestions,
     settingCutOffPoint,
@@ -19,6 +20,7 @@ const router = express.Router();
 router.get("/", checkAuth, getQuestionsAndSettings);
 router.get("/settings", checkAuth, getSettings);
 router.get("/questions", checkAuth, getQuestions);
+router.get("/status", checkAuth, getUserTestStatus);
 
 router.post("/check", checkAuth, checkTest);
 

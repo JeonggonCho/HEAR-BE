@@ -5,6 +5,7 @@ import {
     getQuestions,
     getQuestionsAndSettings,
     getSettings,
+    getUserTestResult,
     getUserTestStatus,
     implementationEducation,
     saveQuestions,
@@ -21,6 +22,7 @@ router.get("/", checkAuth, getQuestionsAndSettings);
 router.get("/settings", checkAuth, getSettings);
 router.get("/questions", checkAuth, getQuestions);
 router.get("/status", checkAuth, getUserTestStatus);
+router.get("/result", checkAuth, getUserTestResult);
 
 router.post("/check", checkAuth, checkTest);
 

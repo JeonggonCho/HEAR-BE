@@ -139,7 +139,11 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
+    const {userId, role} = req.userData;
+
+    if (role === "manager") {
+        return next(new HttpError("학생만 문제 응시가 가능합니다.", 403));
+    }
 
     let settings;
     try {
@@ -177,7 +181,116 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
     }
 
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("테스트 응시 가능 여부 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    // 유저가 존재하지 않으면 에러 전달
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 데이터입니다.", 500));
+    }
+
+    // 유저가 테스트를 이수했으면 에러 전달
+    if (existingUser.passEducation) {
+        return next(new HttpError("이미 테스트를 이수하였습니다.", 500));
+    }
+
     return res.status(200).json({data: {message: "테스트 응시가 가능합니다."}});
+};
+
+
+// 유저의 테스트 결과 확인
+const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
+
+    const {userId} = req.userData;
+
+    let existingUser;
+    try {
+        existingUser = await UserModel.findById(userId);
+    } catch (err) {
+        return next(new HttpError("테스트 결과 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (!existingUser) {
+        return next(new HttpError("유효하지 않은 유저 데이터입니다.", 500));
+    }
+
+    let testResult;
+    try {
+        testResult = await TestResultModel.find({userId: userId});
+    } catch (err) {
+        return next(new HttpError("테스트 결과 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    }
+
+    if (testResult.length === 0) {
+        return next(new HttpError("유저의 테스트 결과가 존재하지 않습니다.", 500));
+    }
+
+    const questions = await Promise.all(
+        testResult[0].questions.map(async (q) => {
+            const targetQuestion = await QuestionModel.findById(q.questionId);
+            if (targetQuestion) {
+                const question = targetQuestion.question;
+                const explanation = targetQuestion.explanation;
+                const questionType = targetQuestion.questionType;
+                switch (questionType) {
+                    case "shortAnswer":
+                        return {
+                            question: question,
+                            explanation: explanation,
+                            questionType: questionType,
+                            answer: targetQuestion.answer.trim(),
+                            myAnswer: (q.myAnswer as string).trim(),
+                            isCorrect: q.isCorrect,
+                        };
+                    case "singleChoice":
+                        return {
+                            question: question,
+                            explanation: explanation,
+                            questionType: questionType,
+                            options: targetQuestion.options.map((opt) => {
+                                return {
+                                    content: opt.content,
+                                    isAnswer: opt.isAnswer,
+                                    isChecked: opt.optionId.toString() === q.myAnswer.toString(),
+                                };
+                            }),
+                            isCorrect: q.isCorrect,
+                        };
+                    case "multipleChoice":
+                        return {
+                            question: question,
+                            explanation: explanation,
+                            questionType: questionType,
+                            options: targetQuestion.options.map((opt) => {
+                                return {
+                                    content: opt.content,
+                                    isAnswer: opt.isAnswer,
+                                    isChecked: (q.myAnswer as string[]).includes(opt.optionId.toString()),
+                                };
+                            }),
+                            isCorrect: q.isCorrect,
+                        };
+                    default:
+                        return null;
+                }
+            }
+            return null;
+        })
+    );
+
+    const responseData = {
+        isPassed: testResult[0].isPassed,
+        questions: questions,
+    };
+
+    return res.status(200).json({data: responseData});
 };
 
 
@@ -254,7 +367,7 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
                 return next(new HttpError("유효하지 않은 데이터이므로 문제를 제출 할 수 없습니다.", 400));
             }
 
-            const qType = questions[targetIndex].questionType;
+            const questionType = questions[targetIndex].questionType;
 
             let questionResult = {
                 questionId: new mongoose.Types.ObjectId(answer.questionId),
@@ -262,9 +375,9 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
                 isCorrect: false,
             };
 
-            switch (qType) {
+            switch (questionType) {
                 case "shortAnswer":
-                    if (questions[targetIndex].answer === answer.myAnswer) {
+                    if (questions[targetIndex].answer.trim() === answer.myAnswer.trim()) {
                         questionResult["isCorrect"] = true;
                     } else {
                         countOfWrong++;
@@ -303,7 +416,7 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
                     break;
             }
         }
-        
+
         const existingUser = await UserModel.findById(userId).session(sess);
 
         // 유저가 없을 경우, 에러 발생
@@ -472,6 +585,7 @@ export {
     getSettings,
     getQuestions,
     getUserTestStatus,
+    getUserTestResult,
     checkTest,
     saveQuestions,
     implementationEducation,

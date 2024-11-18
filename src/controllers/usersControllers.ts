@@ -68,7 +68,7 @@ const getUserInfo = async (req: CustomRequest, res: Response, next: NextFunction
     const {role} = req.userData;
     const {userId} = req.params;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -107,7 +107,7 @@ const getUsers = async (req: CustomRequest, res: Response, next: NextFunction) =
     const {role} = req.userData;
     const {year, passEducation, countOfWarning, username} = req.query;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -211,23 +211,23 @@ const getWarnings = async (req: CustomRequest, res: Response, next: NextFunction
 
 
 // 조교 정보 조회하기
-const getManager = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const getAssistant = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    let manager;
+    let assistant;
     try {
-        manager = await UserModel.find({role: "manager"});
+        assistant = await UserModel.find({role: "assistant"});
     } catch (err) {
         return next(new HttpError("조교 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (manager.length === 0) {
+    if (assistant.length === 0) {
         return next(new HttpError("조교 정보를 조회 할 수 없습니다.", 403));
     }
 
-    return res.status(200).json({data: {username: manager[0].username, lab: manager[0].lab}});
+    return res.status(200).json({data: {username: assistant[0].username, lab: assistant[0].lab}});
 };
 
 
@@ -588,15 +588,26 @@ const updateUser = async (req: CustomRequest, res: Response, next: NextFunction)
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
-    const {userId} = req.userData;
-    const {username, year, studentId, studio, tel} = req.body;
+    const {userId, role} = req.userData;
+    const {username, studentId, tel, lab} = req.body;
+
+    if (role === "assistant" && !lab) {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저 정보를 변경 할 수 없습니다.", 403));
+    }
+
+    let updatedData;
+    if (role === "student") {
+        updatedData = {username, studentId, tel};
+    } else if (role === "assistant") {
+        updatedData = {username, studentId, tel, lab};
+    }
 
     // 유저 정보 업데이트
     let updatedUser;
     try {
         updatedUser = await UserModel.findByIdAndUpdate(
             userId,
-            {username, year, studentId, studio, tel},
+            updatedData,
             {new: true},
         );
     } catch (err) {
@@ -765,7 +776,7 @@ const handoverAssistant = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("조교 정보 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (!requestUser || (requestUser.role !== "admin" && requestUser.role !== "manager")) {
+    if (!requestUser || (requestUser.role !== "admin" && requestUser.role !== "assistant")) {
         return next(new HttpError("유효하지 않은 데이터이므로 유저 조회를 할 수 없습니다.", 403));
     }
 
@@ -782,9 +793,9 @@ const handoverAssistant = async (req: CustomRequest, res: Response, next: NextFu
     }
 
     // 조교 역할 유저 모두 찾기
-    let managers;
+    let assistants;
     try {
-        managers = await UserModel.find({role: "manager"});
+        assistants = await UserModel.find({role: "assistant"});
     } catch (err) {
         return next(new HttpError("조교 인수인계 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
@@ -795,14 +806,14 @@ const handoverAssistant = async (req: CustomRequest, res: Response, next: NextFu
 
     try {
         // 기존 조교 계정들 삭제
-        if (managers.length > 0) {
-            for (const manager of managers) {
-                await manager.deleteOne({session: sess});
+        if (assistants.length > 0) {
+            for (const assistant of assistants) {
+                await assistant.deleteOne({session: sess});
             }
         }
-        if (targetUser.role !== "manager") {
+        if (targetUser.role !== "assistant") {
             // 대상 유저의 역할 변경
-            targetUser.role = "manager";
+            targetUser.role = "assistant";
             await targetUser.save({session: sess});
         }
         await sess.commitTransaction();
@@ -846,7 +857,7 @@ const addWarning = async (req: CustomRequest, res: Response, next: NextFunction)
     const {userId} = req.params;
     const {countOfWarning, message} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -899,7 +910,7 @@ const minusWarning = async (req: CustomRequest, res: Response, next: NextFunctio
     const {userId} = req.params;
     const {countOfWarning} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -941,7 +952,7 @@ const passEducation = async (req: CustomRequest, res: Response, next: NextFuncti
     const {userId} = req.params;
     const {passEducation} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -982,7 +993,7 @@ const resetEducation = async (req: CustomRequest, res: Response, next: NextFunct
     const {userId} = req.params;
     const {passEducation} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("유효하지 않은 데이터이므로 요청을 처리 할 수 없습니다.", 403));
     }
 
@@ -1036,7 +1047,7 @@ const deleteUser = async (req: CustomRequest, res: Response, next: NextFunction)
         }
 
         // 조교 또는 운영자일 경우, 바로 삭제
-        if (role === "manager" || role === "admin") {
+        if (role === "assistant" || role === "admin") {
             await existingUser.deleteOne({session: sess});
         } else {
             // 학생일 경우, 본인인 경우에 삭제
@@ -1062,7 +1073,7 @@ export {
     getUserInfo,
     getUsers,
     getWarnings,
-    getManager,
+    getAssistant,
     checkEmail,
     signup,
     login,

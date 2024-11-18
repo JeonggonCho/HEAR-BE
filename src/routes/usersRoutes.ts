@@ -5,7 +5,7 @@ import {
     checkRefreshToken,
     deleteUser,
     findPassword,
-    getManager,
+    getAssistant,
     getUser,
     getUserInfo,
     getUsers,
@@ -39,7 +39,7 @@ const router = express.Router();
 
 router.get("/", checkAuth, getUser);
 router.get("/all", checkAuth, getUsers);
-router.get("/manager", checkAuth, getManager);
+router.get("/assistant", checkAuth, getAssistant);
 router.get("/warnings", checkAuth, getWarnings);
 router.get("/check-email", checkEmail); // 이메일 중복 확인
 router.get("/:userId", checkAuth, getUserInfo);
@@ -50,7 +50,7 @@ router.post("/refresh-token", checkRefreshToken); // 리프레시 토큰 확인 
 router.post("/signup", signupValidator, signup);
 router.post("/login", loginValidator, login);
 
-router.patch("/", checkAuth, updateAccountValidator, updateUser);
+router.patch("/", checkAuth, updateAccountValidator, updateUser);  // updateUser는 유효성 검사 후 호출됨
 router.patch("/password", checkAuth, updatePasswordValidator, updatePassword);
 router.patch("/warning", checkAuth, resetAllWarning); // 모든 유저 경고 초기화
 router.patch("/education", checkAuth, resetAllEducation); // 모든 유저 교육 미이수 처리

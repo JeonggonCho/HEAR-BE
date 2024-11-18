@@ -18,7 +18,7 @@ const getQuestionsAndSettings = async (req: CustomRequest, res: Response, next: 
 
     const {role} = req.userData;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 문제 조회가 가능합니다.", 403));
     }
 
@@ -48,6 +48,7 @@ const getSettings = async (req: CustomRequest, res: Response, next: NextFunction
                 startDate: settings[0].startDate,
                 endDate: settings[0].endDate,
                 status: settings[0].status,
+                cutOffPoint: settings[0].cutOffPoint,
             }
         });
     } catch (err) {
@@ -141,7 +142,7 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
 
     const {userId, role} = req.userData;
 
-    if (role === "manager") {
+    if (role === "assistant") {
         return next(new HttpError("학생만 문제 응시가 가능합니다.", 403));
     }
 
@@ -301,10 +302,14 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
     }
 
     const {userId, role} = req.userData;
-    const {testAnswers} = req.body;
+    const {testAnswers, year, studio} = req.body;
 
-    if (role === "manager") {
+    if (role === "assistant") {
         return next(new HttpError("조교는 문제를 제출 할 수 없습니다.", 500));
+    }
+
+    if (!year || !studio) {
+        return next(new HttpError("학년 및 스튜디오 정보가 필요합니다.", 500));
     }
 
     let settings;
@@ -425,6 +430,10 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
             return next(new HttpError("유효하지 않은 데이터이므로 문제를 제출 할 수 없습니다.", 403));
         }
 
+        // 유저의 학년 및 스튜디오 수정
+        existingUser.year = year;
+        existingUser.studio = studio;
+
         // 커트라인 개수 이하로 틀린 경우, 유저의 교육 이수 여부를 통과로 처리하기
         existingUser.passEducation = countOfWrong <= cutOffPoint;
         testResult.isPassed = countOfWrong <= cutOffPoint;
@@ -453,7 +462,7 @@ const saveQuestions = async (req: CustomRequest, res: Response, next: NextFuncti
     const {role} = req.userData;
     const {questions} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 문제 저장이 가능합니다.", 403));
     }
 
@@ -508,7 +517,7 @@ const implementationEducation = async (req: CustomRequest, res: Response, next: 
 
     const {role} = req.userData;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 교육 게시가 가능합니다.", 403));
     }
 
@@ -536,7 +545,7 @@ const settingDate = async (req: CustomRequest, res: Response, next: NextFunction
     const {role} = req.userData;
     const {startDate, endDate} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 교육 날짜 설정이 가능합니다.", 403));
     }
 
@@ -561,7 +570,7 @@ const settingCutOffPoint = async (req: CustomRequest, res: Response, next: NextF
     const {role} = req.userData;
     const {cutOffPoint} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 커트라인 문제 개수 설정이 가능합니다.", 403));
     }
 

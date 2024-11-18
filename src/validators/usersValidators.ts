@@ -48,9 +48,7 @@ const loginValidator = [
 
 const updateAccountValidator = [
     checkUsername,
-    checkYear,
     checkStudentId,
-    checkStudio,
     checkTel,
 ];
 

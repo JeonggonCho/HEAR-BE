@@ -14,7 +14,7 @@ interface ITokenSignProps {
     _id: mongoose.Types.ObjectId;
     email: string;
     username: string;
-    role: "admin" | "student" | "manager";
+    role: "admin" | "student" | "assistant";
     studentId: string;
 }
 

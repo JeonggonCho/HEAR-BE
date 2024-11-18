@@ -17,7 +17,7 @@ export interface IUser extends Document {
     username: string; // 모든 유저
     email: string; // 모든 유저
     password: string; // 모든 유저
-    role: "admin" | "student" | "manager"; // 모든 유저
+    role: "admin" | "student" | "assistant"; // 모든 유저
     passEducation?: boolean; // student
     studio?: string; // student
     year?: "1" | "2" | "3" | "4" | "5"; // student
@@ -30,7 +30,7 @@ export interface IUser extends Document {
     inquiries?: mongoose.Types.ObjectId[]; // student
     feedback: mongoose.Types.ObjectId[];
     comments: mongoose.Types.ObjectId[];
-    lab?: string; // manager
+    lab?: string; // assistant
     createdAt?: Date; // 가입일
     updatedAt?: Date; // 마지막 수정일
 }
@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema<IUser>({
     role: {
         type: String,
         default: "student",
-        enum: ["admin", "student", "manager"],
+        enum: ["admin", "student", "assistant"],
         required: true,
     },
     passEducation: {
@@ -215,7 +215,7 @@ userSchema.pre<IUser>('save', function (next) {
         // 역할에 맞는 필드 설정
         if (user.role === "admin") {
             // Admin 역할에 필요한 필드 없음
-        } else if (user.role === "manager") {
+        } else if (user.role === "assistant") {
             user.lab = user.lab || '';
         } else if (user.role === "student") {
             user.passEducation = user.passEducation ?? false;

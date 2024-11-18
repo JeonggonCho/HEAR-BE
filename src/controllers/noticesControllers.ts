@@ -22,7 +22,7 @@ const newNotice = async (req: CustomRequest, res: Response, next: NextFunction) 
     const {userId, role} = req.userData;
 
     // 조교 및 운영자 공지 등록 가능
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 공지 등록이 가능합니다.", 403));
     }
 
@@ -198,7 +198,7 @@ const updateNotice = async (req: CustomRequest, res: Response, next: NextFunctio
     const {noticeId} = req.params;
     const {title, content} = req.body;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 공지 수정이 가능합니다.", 403));
     }
 
@@ -229,7 +229,7 @@ const deleteNotice = async (req: CustomRequest, res: Response, next: NextFunctio
     const {role} = req.userData;
     const {noticeId} = req.params;
 
-    if (role !== "manager" && role !== "admin") {
+    if (role !== "assistant" && role !== "admin") {
         return next(new HttpError("조교만 공지 삭제가 가능합니다.", 403));
     }
 

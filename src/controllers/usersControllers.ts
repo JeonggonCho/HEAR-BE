@@ -828,10 +828,46 @@ const handoverAssistant = async (req: CustomRequest, res: Response, next: NextFu
 };
 
 
-// 조교와 운영자만 가능
-// TODO 모든 경고 차감하기
+// 모든 경고 차감하기
 const resetAllWarning = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
 
+    const {role} = req.userData;
+
+    if (role !== "assistant" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저들의 경고를 초기화 할 수 없습니다.", 403));
+    }
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        const users = await UserModel.find().session(sess);
+
+        // bulkWrite 로 수행할 배치 작업 묶음 생성
+        const bulkOperations = users.map((user) => {
+            return {
+                updateOne: {
+                    filter: {_id: user._id},
+                    update: {$set: {countOfWarning: 0}},
+                },
+            };
+        });
+
+        if (bulkOperations.length > 0) {
+            await UserModel.bulkWrite(bulkOperations, {session: sess}); // bulkWrite 사용 시, 여러 작업을 효율적으로 한 번에 작업을 처리할 수 있음
+        }
+
+        await sess.commitTransaction();
+        return res.status(200).json({data: {message: "모든 유저의 경고 수가 초기화 되었습니다."}});
+    } catch (err) {
+        await sess.abortTransaction();
+        return next(new HttpError("모든 경고 초기화 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
+    }
 };
 
 

@@ -871,10 +871,45 @@ const resetAllWarning = async (req: CustomRequest, res: Response, next: NextFunc
 };
 
 
-// 조교와 운영자만 가능
-// TODO 모든 유저 교육 미이수로 초기화하기
+// 모든 유저 교육 미이수로 초기화하기
 const resetAllEducation = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    if (!req.userData) {
+        return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
+    }
 
+    const {role} = req.userData;
+
+    if (role !== "assistant" && role !== "admin") {
+        return next(new HttpError("유효하지 않은 데이터이므로 유저들의 교육 이수를 초기화 할 수 없습니다.", 403));
+    }
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    try {
+        const users = await UserModel.find().session(sess);
+
+        const bulkOperations = users.map((user) => {
+            return {
+                updateOne: {
+                    filter: {_id: user._id},
+                    update: {$set: {passEducation: false}},
+                },
+            };
+        });
+
+        if (bulkOperations.length > 0) {
+            await UserModel.bulkWrite(bulkOperations, {session: sess});
+        }
+
+        await sess.commitTransaction();
+        return res.status(200).json({data: {message: "모든 유저의 교육 이수 여부가 초기화 되었습니다."}});
+    } catch (err) {
+        await sess.abortTransaction();
+        return next(new HttpError("모든 유저의 교육 이수 여부 초기화 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
+    } finally {
+        await sess.endSession();
+    }
 };
 
 

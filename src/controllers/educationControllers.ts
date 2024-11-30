@@ -162,7 +162,7 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
     }
 
     const start = dayjs(startDate, "YYYY-MM-DD");
-    const end = dayjs(endDate, "YYYY-MM-DD");
+    const end = dayjs(endDate, "YYYY-MM-DD").add(1, 'day');
     const now = dayjs(currentDate, "YYYY-MM-DD");
 
     // 시작일과 종료일이 있는지 확인하고, 현재 날짜가 범위 내에 있는지 확인

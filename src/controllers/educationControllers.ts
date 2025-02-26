@@ -2,11 +2,9 @@ import {NextFunction, Response} from "express";
 import mongoose from "mongoose";
 import dayjs from "dayjs";
 import {validationResult} from "express-validator";
-
 import {CustomRequest} from "../middlewares/checkAuth";
-
 import HttpError from "../models/errorModel";
-import {EducationSettingsModel, EducationType, QuestionModel, TestResultModel} from "../models/educationModel";
+import {EducationResultModel, EducationSettingsModel, EducationType, QuestionModel} from "../models/educationModel";
 import UserModel from "../models/userModel";
 
 
@@ -90,14 +88,14 @@ const getQuestions = async (req: CustomRequest, res: Response, next: NextFunctio
     }
 
     // 이미 테스트를 완료한 학생이 요청했는지 확인
-    let testResult;
+    let educationResult;
     try {
-        testResult = await TestResultModel.find({userId: userId});
+        educationResult = await EducationResultModel.find({userId: userId});
     } catch (err) {
         return next(new HttpError("문제 조회 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (testResult.length !== 0) {
+    if (educationResult.length !== 0) {
         return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
     }
 
@@ -135,7 +133,7 @@ const getQuestions = async (req: CustomRequest, res: Response, next: NextFunctio
 
 
 // 유저의 테스트 응시 가능 여부 확인 조회
-const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const getUserEducationStatus = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -171,14 +169,14 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
     }
 
     // 이미 테스트를 완료한 학생이 요청했는지 확인
-    let testResult;
+    let educationResult;
     try {
-        testResult = await TestResultModel.find({userId: userId});
+        educationResult = await EducationResultModel.find({userId: userId});
     } catch (err) {
         return next(new HttpError("테스트 응시 가능 여부 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (testResult.length !== 0) {
+    if (educationResult.length !== 0) {
         return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
     }
 
@@ -204,7 +202,7 @@ const getUserTestStatus = async (req: CustomRequest, res: Response, next: NextFu
 
 
 // 유저의 테스트 결과 확인
-const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const getUserEducationResult = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
@@ -222,19 +220,19 @@ const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFu
         return next(new HttpError("유효하지 않은 유저 데이터입니다.", 500));
     }
 
-    let testResult;
+    let educationResult;
     try {
-        testResult = await TestResultModel.find({userId: userId});
+        educationResult = await EducationResultModel.find({userId: userId});
     } catch (err) {
         return next(new HttpError("테스트 결과 확인 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (testResult.length === 0) {
+    if (educationResult.length === 0) {
         return next(new HttpError("유저의 테스트 결과가 존재하지 않습니다.", 500));
     }
 
     const questions = await Promise.all(
-        testResult[0].questions.map(async (q) => {
+        educationResult[0].questions.map(async (q) => {
             const targetQuestion = await QuestionModel.findById(q.questionId);
             if (targetQuestion) {
                 const question = targetQuestion.question;
@@ -259,7 +257,7 @@ const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFu
                                 return {
                                     content: opt.content,
                                     isAnswer: opt.isAnswer,
-                                    isChecked: opt.optionId.toString() === q.myAnswer.toString(),
+                                    isChecked: opt.optionId.toString() === (q.myAnswer as string).toString(),
                                 };
                             }),
                             isCorrect: q.isCorrect,
@@ -287,7 +285,7 @@ const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFu
     );
 
     const responseData = {
-        isPassed: testResult[0].isPassed,
+        isPassed: educationResult[0].isPassed,
         questions: questions,
     };
 
@@ -296,13 +294,15 @@ const getUserTestResult = async (req: CustomRequest, res: Response, next: NextFu
 
 
 // 문제 제출
-const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) => {
+const checkEducation = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));
     }
 
     const {userId, role} = req.userData;
-    const {testAnswers, year, studio} = req.body;
+    const {year, studio} = req.body;
+    const educationAnswers: { [key: string]: undefined | string | string[] } = req.body.educationAnswers;
+
 
     if (role === "assistant") {
         return next(new HttpError("조교는 문제를 제출 할 수 없습니다.", 500));
@@ -337,14 +337,14 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
     }
 
     // 이미 테스트를 완료한 학생이 요청했는지 확인
-    let testResult;
+    let educationResult;
     try {
-        testResult = await TestResultModel.find({userId: userId});
+        educationResult = await EducationResultModel.find({userId: userId});
     } catch (err) {
         return next(new HttpError("문제 제출 중 오류가 발생하였습니다. 다시 시도해주세요.", 500));
     }
 
-    if (testResult.length !== 0) {
+    if (educationResult.length !== 0) {
         return next(new HttpError("이미 테스트를 제출하였습니다.", 500));
     }
 
@@ -356,7 +356,7 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
         let countOfWrong = 0;
 
         // 테스트 결과 모델 객체 생성
-        let testResult = new TestResultModel({
+        let educationResult = new EducationResultModel({
             userId: userId,
             questions: [],
             isPassed: false,
@@ -365,8 +365,8 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
         const questions = await QuestionModel.find();
 
         // 제출한 답을 순회하면서 답안 검사하기
-        for (let answer of testAnswers) {
-            const targetIndex = questions.findIndex(q => q._id.toString() === answer.questionId.toString());
+        for (let [questionId, myAnswer] of Object.entries(educationAnswers)) {
+            const targetIndex = questions.findIndex(q => q._id.toString() === questionId.toString());
 
             if (targetIndex === -1) {
                 return next(new HttpError("유효하지 않은 데이터이므로 문제를 제출 할 수 없습니다.", 400));
@@ -375,37 +375,37 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
             const questionType = questions[targetIndex].questionType;
 
             let questionResult = {
-                questionId: new mongoose.Types.ObjectId(answer.questionId),
-                myAnswer: answer.myAnswer,
+                questionId: new mongoose.Types.ObjectId(questionId),
+                myAnswer,
                 isCorrect: false,
             };
 
             switch (questionType) {
                 case "shortAnswer":
-                    if (questions[targetIndex].answer.trim() === answer.myAnswer.trim()) {
+                    if (typeof myAnswer === "string" && questions[targetIndex].answer.trim() === myAnswer.trim()) {
                         questionResult["isCorrect"] = true;
                     } else {
                         countOfWrong++;
                     }
-                    testResult.questions.push(questionResult);
+                    educationResult.questions.push(questionResult);
                     break;
                 case "singleChoice":
                     const singleChoiceAnswer = questions[targetIndex].options
                         .filter((opt) => opt.isAnswer)[0]?.optionId;
-                    if (singleChoiceAnswer === answer.myAnswer) {
+                    if (singleChoiceAnswer === myAnswer) {
                         questionResult["isCorrect"] = true;
                     } else {
                         countOfWrong++;
                     }
-                    testResult.questions.push(questionResult);
+                    educationResult.questions.push(questionResult);
                     break;
                 case "multipleChoice":
                     const multipleChoiceAnswer: string[] = questions[targetIndex].options
                         .filter((opt) => opt.isAnswer)
                         .map(a => a.optionId as string);
 
-                    if ((Array.isArray(answer.myAnswer) && answer.myAnswer.length === multipleChoiceAnswer.length)) {
-                        const setA = new Set(answer.myAnswer as string[]);
+                    if ((Array.isArray(myAnswer) && myAnswer.length === multipleChoiceAnswer.length)) {
+                        const setA = new Set(myAnswer as string[]);
                         const setB = new Set(multipleChoiceAnswer);
                         if ([...setA].every(value => setB.has(value))) {
                             questionResult["isCorrect"] = true;
@@ -415,7 +415,7 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
                     } else {
                         countOfWrong++;
                     }
-                    testResult.questions.push(questionResult);
+                    educationResult.questions.push(questionResult);
                     break;
                 default:
                     break;
@@ -436,9 +436,9 @@ const checkTest = async (req: CustomRequest, res: Response, next: NextFunction) 
 
         // 커트라인 개수 이하로 틀린 경우, 유저의 교육 이수 여부를 통과로 처리하기
         existingUser.passEducation = countOfWrong <= cutOffPoint;
-        testResult.isPassed = countOfWrong <= cutOffPoint;
+        educationResult.isPassed = countOfWrong <= cutOffPoint;
 
-        await testResult.save({session: sess});
+        await educationResult.save({session: sess});
         await existingUser.save({session: sess});
 
         await sess.commitTransaction();
@@ -593,9 +593,9 @@ export {
     getQuestionsAndSettings,
     getSettings,
     getQuestions,
-    getUserTestStatus,
-    getUserTestResult,
-    checkTest,
+    getUserEducationStatus,
+    getUserEducationResult,
+    checkEducation,
     saveQuestions,
     implementationEducation,
     settingDate,

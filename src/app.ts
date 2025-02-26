@@ -10,6 +10,7 @@ import feedbackRoutes from "./routes/feedbackRoutes";
 import noticesRoutes from "./routes/noticesRoutes";
 import machinesRoutes from "./routes/machinesRoutes";
 import reservationsRoutes from "./routes/reservationsRoutes";
+import reservationSettingsRoutes from "./routes/reservationSettingsRoutes";
 import commentsRoutes from "./routes/commentsRoutes";
 import educationRoutes from "./routes/educationRoutes";
 
@@ -41,6 +42,7 @@ app.use("/api/notices", noticesRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/machines", machinesRoutes)
 app.use("/api/reservations", reservationsRoutes);
+app.use("/api/reservationSettings", reservationSettingsRoutes);
 app.use("/api/education", educationRoutes);
 
 app.use((req, res, next) => {

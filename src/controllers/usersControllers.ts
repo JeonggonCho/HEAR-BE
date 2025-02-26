@@ -3,12 +3,10 @@ import {validationResult} from "express-validator";
 import bcrypt from "bcryptjs";
 import mongoose, {Types} from "mongoose";
 import dayjs from "dayjs";
-
 import UserModel from "../models/userModel";
 import WarningModel from "../models/warningModel";
 import VerificationCodeModel from "../models/verificationCodeModel";
 import HttpError from "../models/errorModel";
-
 import {CustomRequest} from "../middlewares/checkAuth";
 import jwt from "../utils/jwtUtil";
 import jwtUtil from "../utils/jwtUtil";
@@ -18,7 +16,7 @@ import sendEmail from "../utils/sendEmail";
 import generatePassword from "../utils/generatePassword";
 
 
-// 유저 정보 가져오기
+// 유저의 내 정보 가져오기
 const getUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
     if (!req.userData) {
         return next(new HttpError("인증 정보가 없어 요청을 처리할 수 없습니다. 다시 로그인 해주세요.", 401));

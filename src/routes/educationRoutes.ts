@@ -1,12 +1,12 @@
 import express from "express";
 
 import {
-    checkTest,
+    checkEducation,
     getQuestions,
     getQuestionsAndSettings,
     getSettings,
-    getUserTestResult,
-    getUserTestStatus,
+    getUserEducationResult,
+    getUserEducationStatus,
     implementationEducation,
     saveQuestions,
     settingCutOffPoint,
@@ -21,14 +21,14 @@ const router = express.Router();
 router.get("/", checkAuth, getQuestionsAndSettings);
 router.get("/settings", checkAuth, getSettings);
 router.get("/questions", checkAuth, getQuestions);
-router.get("/status", checkAuth, getUserTestStatus);
-router.get("/result", checkAuth, getUserTestResult);
+router.get("/status", checkAuth, getUserEducationStatus);
+router.get("/result", checkAuth, getUserEducationResult);
 
-router.post("/check", checkAuth, checkTest);
+router.post("/check", checkAuth, checkEducation);
 
 router.patch("/", checkAuth, saveQuestions);
 router.patch("/implementation", checkAuth, implementationEducation);
-router.patch("/cutOffPoint", checkAuth, settingCutOffPoint);
+router.patch("/cut-off-point", checkAuth, settingCutOffPoint);
 router.patch("/date", checkAuth, eductionDateValidator, settingDate);
 
 export default router;

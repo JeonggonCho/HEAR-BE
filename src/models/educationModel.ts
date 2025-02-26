@@ -42,11 +42,11 @@ interface IEducationSettings {
     cutOffPoint: number;
 }
 
-interface ITestResult {
+interface IEducationResult {
     userId: mongoose.Types.ObjectId;
     questions: {
         questionId: mongoose.Types.ObjectId;
-        myAnswer: string | string[];
+        myAnswer: undefined | string | string[];
         isCorrect: boolean;
     }[];
     isPassed: boolean;
@@ -103,7 +103,7 @@ const educationSettingsSchema = new mongoose.Schema<IEducationSettings>({
     },
 });
 
-const testResultSchema = new mongoose.Schema<ITestResult>({
+const educationResultSchema = new mongoose.Schema<IEducationResult>({
     userId: {
         type: Schema.Types.ObjectId,
         ref: "User",
@@ -133,6 +133,6 @@ const testResultSchema = new mongoose.Schema<ITestResult>({
 
 const QuestionModel = mongoose.model<EducationType>("Question", questionSchema);
 const EducationSettingsModel = mongoose.model<IEducationSettings>("EducationSettings", educationSettingsSchema);
-const TestResultModel = mongoose.model<ITestResult>("TestResult", testResultSchema);
+const EducationResultModel = mongoose.model<IEducationResult>("EducationResult", educationResultSchema);
 
-export {QuestionModel, EducationSettingsModel, TestResultModel};
+export {QuestionModel, EducationSettingsModel, EducationResultModel};

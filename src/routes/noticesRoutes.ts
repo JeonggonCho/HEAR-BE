@@ -12,11 +12,11 @@ import {
 
 const router = express.Router();
 
-router.post("/new", checkAuth, noticeValidator, newNotice);
-
 router.get("/", checkAuth, getNotices);
 router.get("/latest", checkAuth, getLatestNotices);
 router.get("/:noticeId", checkAuth, getNotice);
+
+router.post("/new", checkAuth, noticeValidator, newNotice);
 
 router.patch("/:noticeId", checkAuth, noticeValidator, updateNotice);
 

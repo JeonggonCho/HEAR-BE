@@ -3,7 +3,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import Agenda from "agenda";
-
+import cors from "cors";
 import usersRoutes from "./routes/usersRoutes";
 import inquiriesRoutes from "./routes/inquiriesRoutes";
 import feedbackRoutes from "./routes/feedbackRoutes";
@@ -26,13 +26,24 @@ const app = express();
 // body 파싱 미들웨어
 app.use(bodyParser.json());
 
+// 허용할 도메인 리스트
+// const allowedOrigins = ["http://localhost:5173", "https://hyue-hear.com"];
+
 // CORS 에러 해결
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
-    next();
-});
+// app.use((req, res, next) => {
+//     res.setHeader("Access-Control-Allow-Origin", "*");
+//     res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+//     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
+//     next();
+// });
+
+// CORS 미들웨어 설정
+app.use(cors({
+    origin: "*", // 허용할 도메인
+    methods: ["GET", "POST", "PATCH", "DELETE",], // 허용할 HTTP 메소드
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization",], // 허용할 HTTP 헤더
+    credentials: true  // 인증 정보 (쿠키, Authorization 헤더 등) 포함
+}));
 
 // 라우트 처리
 app.use("/api/users", usersRoutes);

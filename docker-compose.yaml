@@ -1,23 +1,24 @@
-version: '3'
-services:
-  app:
-    build: .
+version: '3'  # Docker Compose 버전
+services: # 실행할 서비스들
+  app: # Node.js 애플리케이션
+    build: .   # 현재 디렉토리에서 Dockerfile을 빌드하여 이미지를 생성
     ports:
-      - "8080:8080"
+      - "8080:8080"  # 호스트의 8080 포트를 컨테이너의 8080 포트에 매핑
     env_file:
-      - .env
+      - .env  # .env 파일에서 환경 변수 불러오기
     volumes:
-      - .:/app  # 로컬 코드 변경 시 컨테이너 내부 코드도 자동 반영
+      - .:/app  # 로컬 디렉토리 (현재 폴더)를 컨테이너 내부의 /app에 매핑 (코드 변경 시 자동 반영)
     depends_on:
-      - mongo  # MongoDB가 먼저 실행되도록 설정
-    command: [ "npm", "run", "dev" ]
+      - mongo  # mongo 서비스가 먼저 실행되도록 설정
+    command: [ "npm", "run", "dev" ]  # 컨테이너가 시작되면 'npm run dev' 명령어 실행
 
-  mongo:
-    image: mongo:6
+  mongo: # MongoDB 데이터베이스
+    image: mongo:6  # MongoDB의 공식 이미지 사용 (버전 6)
     ports:
-      - "27017:27017"
+      - "27017:27017"  # 호스트의 27017 포트를 MongoDB 컨테이너의 27017 포트에 매핑
     volumes:
-      - mongo-data:/data/db  # MongoDB 데이터 저장소
+      - mongo-data:/data/db  # mongo 데이터가 저장될 로컬 볼륨 사용
 
+# 정의된 볼륨
 volumes:
-  mongo-data:
+  mongo-data:  # MongoDB 데이터를 저장할 볼륨을 정의

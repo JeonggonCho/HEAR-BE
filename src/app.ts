@@ -46,15 +46,15 @@ app.use(cors({
 }));
 
 // 라우트 처리
-app.use("/api/users", usersRoutes);
-app.use("/api/inquiries", inquiriesRoutes);
-app.use("/api/feedback", feedbackRoutes);
-app.use("/api/notices", noticesRoutes);
-app.use("/api/comments", commentsRoutes);
-app.use("/api/machines", machinesRoutes)
-app.use("/api/reservations", reservationsRoutes);
-app.use("/api/reservationSettings", reservationSettingsRoutes);
-app.use("/api/education", educationRoutes);
+app.use("/users", usersRoutes);
+app.use("/inquiries", inquiriesRoutes);
+app.use("/feedback", feedbackRoutes);
+app.use("/notices", noticesRoutes);
+app.use("/comments", commentsRoutes);
+app.use("/machines", machinesRoutes)
+app.use("/reservations", reservationsRoutes);
+app.use("/reservationSettings", reservationSettingsRoutes);
+app.use("/education", educationRoutes);
 
 app.use((req, res, next) => {
     return next(new HttpError("라우트를 찾지 못했습니다", 404));

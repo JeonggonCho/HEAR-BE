@@ -19,6 +19,17 @@ services: # 실행할 서비스들
     volumes:
       - mongo-data:/data/db  # mongo 데이터가 저장될 로컬 볼륨 사용
 
+  nginx: # Nginx 서비스 추가
+    image: nginx:latest
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf # Nginx 설정 파일 마운트
+      - /etc/letsencrypt:/etc/letsencrypt # Let's Encrypt 인증서 저장
+    depends_on:
+      - app
+
 # 정의된 볼륨
 volumes:
   mongo-data:  # MongoDB 데이터를 저장할 볼륨을 정의

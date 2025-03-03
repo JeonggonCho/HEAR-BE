@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const educationControllers_1 = require("../controllers/educationControllers");
+const checkAuth_1 = __importDefault(require("../middlewares/checkAuth"));
+const educationValidators_1 = require("../validators/educationValidators");
+const router = express_1.default.Router();
+router.get("/", checkAuth_1.default, educationControllers_1.getQuestionsAndSettings);
+router.get("/settings", checkAuth_1.default, educationControllers_1.getSettings);
+router.get("/questions", checkAuth_1.default, educationControllers_1.getQuestions);
+router.get("/status", checkAuth_1.default, educationControllers_1.getUserEducationStatus);
+router.get("/result", checkAuth_1.default, educationControllers_1.getUserEducationResult);
+router.post("/check", checkAuth_1.default, educationControllers_1.checkEducation);
+router.patch("/", checkAuth_1.default, educationControllers_1.saveQuestions);
+router.patch("/implementation", checkAuth_1.default, educationControllers_1.implementationEducation);
+router.patch("/cut-off-point", checkAuth_1.default, educationControllers_1.settingCutOffPoint);
+router.patch("/date", checkAuth_1.default, educationValidators_1.eductionDateValidator, educationControllers_1.settingDate);
+exports.default = router;
